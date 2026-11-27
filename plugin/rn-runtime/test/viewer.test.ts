@@ -225,3 +225,29 @@ test('PNG stream sends current immutable frames and releases clients when focus 
   while (!(await reader.read()).done) { /* drain trailing boundary */ }
   await eventually(() => listeners.size === 0);
 });
+
+test('platform list redirects only to a running sibling and exposes native rebuild state', async t => {
+  const {state,url} = await serve(t);
+  const {location,atomicWrite} = await import('../src/instance.ts');
+  const previous = process.env.PREVUE_HOME;
+  process.env.PREVUE_HOME = path.join(state.projectRoot,'session-state');
+  t.after(() => { if(previous===undefined) delete process.env.PREVUE_HOME; else process.env.PREVUE_HOME=previous; });
+  const loc = location(state.projectRoot,'android');
+  const other = createServer((req,res)=>{
+    if (req.url === '/health' && req.headers.authorization === 'Bearer fixture-token') res.end(JSON.stringify({key:loc.key}));
+    else res.writeHead(403).end();
+  }).listen(0,'127.0.0.1');
+  await once(other,'listening');
+  t.after(()=>new Promise<void>(resolve=>other.close(()=>resolve())));
+  const address=other.address(); assert.ok(address && typeof address === 'object');
+  const target='http://127.0.0.1:'+address.port;
+  await mkdir(loc.dir,{recursive:true});
+  await atomicWrite(loc.record,JSON.stringify({root:state.projectRoot,key:loc.key,platform:'android',url:target,token:'fixture-token'}));
+  const list=await (await fetch(url+'/rn/platforms')).json();
+  assert.deepEqual(list.platforms.filter((p:{available:boolean})=>p.available).map((p:{platform:string})=>p.platform),['web','android']);
+  const link=await fetch(url+'/rn/platform?target=android&lang=ko',{redirect:'manual'});
+  assert.equal(link.status,303); assert.equal(new URL(link.headers.get('location')!).origin,target);
+  assert.equal((await fetch(url+'/rn/platform?target=ios')).status,409);
+  state.error={code:'NATIVE_BUILD_REQUIRED',message:'Reinstall the Debug Host'};
+  assert.equal((await (await fetch(url+'/viewer/state')).json()).runtime.rebuildRequired,true);
+});
