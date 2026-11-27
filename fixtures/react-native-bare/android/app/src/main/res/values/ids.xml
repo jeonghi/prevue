@@ -1,0 +1,5 @@
+<resources>
+    <item name="native_landing_heading" type="id" />
+    <item name="open_regular_shipment" type="id" />
+    <item name="shipment_surface" type="id" />
+</resources>

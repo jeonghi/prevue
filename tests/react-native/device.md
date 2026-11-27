@@ -1,6 +1,6 @@
 # React Native device verification
 
-`fixtures/react-native-bare` builds a React Native 0.82.1 application with Fabric and Hermes. The shipment preview contains a pressable dispatch action, a controlled text field, a receipt and a scrollable route. The debug entry mounts the Prevue host. The release entry is `index.js`.
+`fixtures/react-native-bare` builds a React Native 0.82.1 application with Fabric and Hermes. The shipment preview contains a pressable dispatch action, a controlled text field, a receipt and a scrollable route. The iOS application opens a native `UIViewController` and the Android application opens a `FragmentActivity`. Ordinary launch shows the native shipment page. A valid debug-only Prevue launch mounts the RN preview below its native heading. The release entry is `index.js`.
 
 Run the commands from the repository root. Choose a dedicated booted Simulator or Emulator. Set `IOS_UDID` to its Simulator UDID or `ANDROID_SERIAL` to its adb serial. The renderer holds an exclusive device lease while it is running.
 
@@ -51,3 +51,23 @@ The harness opens the client through `plugin/bin/prevue rn`, reads real PNG head
 The default evidence directory is `.cache/react-native-device/<platform>`. Pass `--output path` to keep screenshots, UI trees and JSON timing reports elsewhere. Each harness invocation uses the selected project/platform session and stops it at the end. `PREVUE_BIN` can select the full path to another checkout's `plugin/bin/prevue`.
 
 `--build-change` adds and removes a temporary native source input and asserts `NATIVE_BUILD_REQUIRED` with the last valid image. Run this check last. Rebuild and reinstall the fixture before opening another session on that device.
+
+## Embedded native entry
+
+After installing Debug by following the platform instructions, run the matching command. It launches the native landing page, then opens a Prevue session and verifies that the native heading and the RN shipment preview appear in one device accessibility hierarchy. It saves screenshots and accessibility data for both screens.
+
+```sh
+node tests/react-native/device-brownfield.mjs ios "$IOS_UDID"
+node tests/react-native/device-brownfield.mjs android "$ANDROID_SERIAL"
+```
+
+On iOS the native parent installs a child `UIViewController` backed by `RCTRootViewFactory`. The simulator's debug-only Metro port selects `index.preview`. On Android a valid loopback address in the debug intent selects that entry and mounts a `ReactFragment`. An ordinary Debug launch can load `index.js` from the project's usual Metro server after the native button is tapped.
+
+To verify the production path, build the same sample with the `Release` configuration in Xcode or `:app:assembleRelease` in Gradle. Install the Release app on the selected simulator or a locally signed release APK on the selected emulator. The release test intentionally launches it with a debug port, opens the normal shipment screen from the native button and checks both the native heading and the ordinary RN screen. Restore the Debug build before running preview tests again.
+
+```sh
+node tests/react-native/device-brownfield.mjs ios "$IOS_UDID" --release
+node tests/react-native/device-brownfield.mjs android "$ANDROID_SERIAL" --release
+```
+
+`index.preview.js` imports the generated registry and debug host. Production `index.js` registers the ordinary shipment component. The two installable modes share their identifier, so install them one at a time on the selected fixture device.

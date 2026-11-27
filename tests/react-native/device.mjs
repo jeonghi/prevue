@@ -88,7 +88,8 @@ async function exercise() {
   const selected = await rn(['selection']);
   assert.equal(selected.result.node.id, pointed.result.node.id);
   assert.equal(selected.result.previewId, board.previewId);
-  nodes = await frame((await rn(['touch', ...tap])).result, 'tapped');
+  const tapped = await rn(['touch', ...tap]);
+  nodes = await frame(tapped.result, 'tapped');
   assert(hasText(nodes, '배차 요청 완료'), 'Tap must change the shipment status');
   report.checks.push('point', 'selection', 'tap');
   const input = findNode(nodes, n => n.testId === 'shipment-note', 'shipment-note');
@@ -98,7 +99,9 @@ async function exercise() {
   nodes = await frame((await rn(['type', 'Dock B'])).result, 'typed');
   assert.equal(nodes.find(n => n.testId === 'shipment-note')?.text, text);
   assert(nodes.some(n => n.testId !== 'shipment-note' && n.text === text), 'The React receipt must receive the native input value');
-  nodes = await frame((await rn(['reset'])).result, 'reset');
+  const reset = await rn(['reset']);
+  nodes = await frame(reset.result, 'reset');
+  report.interaction = { tapToImageMs: tapped.elapsedMs, resetToImageMs: reset.elapsedMs };
   assert(hasText(nodes, '1톤 카고') && !hasText(nodes, text) && !hasText(nodes, '배차 요청 완료'), 'Reset must remount the shipment');
   report.checks.push('type', 'reset');
   const first = findNode(nodes, n => n.text === '경유지 1', 'first waypoint');
@@ -118,8 +121,10 @@ async function exerciseRefresh() {
     await rn(['wait', relative, '--after', String(shown.result.generation), '--timeout', '90']);
     const before = (await rn(['show', relative, '--device', device])).result.cards[0];
     assert(hasText(await frame(before), 'Before edit'));
+    const saved = performance.now();
     await writeFile(file, source('After edit'));
     const changed = (await rn(['wait', relative, '--after', String(before.generation), '--timeout', '90'])).result.cards[0];
+    const editToImageMs = Math.round(performance.now() - saved);
     assert(hasText(await frame(changed, 'edited'), 'After edit'));
     assert(changed.generation > before.generation);
     await writeFile(file, source('Broken').replace('render: () =>', 'render: () @'));
@@ -129,7 +134,7 @@ async function exerciseRefresh() {
     await writeFile(file, source('Recovered'));
     const healthy = (await rn(['wait', relative, '--after', String(broken.generation), '--timeout', '90'])).result.cards[0];
     assert(hasText(await frame(healthy, 'recovered'), 'Recovered'));
-    report.refresh = { before: before.generation, edited: changed.generation, broken: broken.generation,
+    report.refresh = { editToImageMs, before: before.generation, edited: changed.generation, broken: broken.generation,
       recovered: healthy.generation, error: broken.error.code };
     report.checks.push('saved JS/TS/TSX edit', 'error retains previous image', 'recovery');
     await rn(['show', 'Shipment.preview.tsx', '--device', device]);
