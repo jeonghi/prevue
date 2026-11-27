@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { Browser, BrowserContext, Page } from 'playwright';
 import type { Interaction, PreviewSession, RenderRequest, RenderResult, UITree } from '../protocol.ts';
 import { describeError, WebError, type BrowserBridge } from './bridge.ts';
+import { resolveSources } from './inspector.ts';
 import type { WebBundler } from './bundler.ts';
 
 export interface Ticket {
@@ -157,6 +158,12 @@ export class WebSession implements PreviewSession {
     return page;
   }
 
+  private async readTree(page: Page): Promise<UITree> {
+    const inspector = this.bundler.inspector;
+    const tree = await page.evaluate(attribute => window.__prevueWeb.tree(attribute), inspector?.attribute);
+    return resolveSources(tree, inspector);
+  }
+
   initialize(): Promise<void> {
     return this.run(async () => { await this.apply(this.target); });
   }
@@ -165,7 +172,7 @@ export class WebSession implements PreviewSession {
     const started = performance.now();
     return this.run(async (): Promise<RenderResult> => {
       const page = await this.apply(ticket);
-      const tree = await page.evaluate(() => window.__prevueWeb.tree());
+      const tree = await this.readTree(page);
       const image = await page.screenshot({ type: 'png', scale: 'device', timeout: 15000 });
       ticket.check();
       const width = image.readUInt32BE(16);
@@ -204,7 +211,7 @@ export class WebSession implements PreviewSession {
     const ticket = this.target;
     return this.run(async () => {
       const page = await this.apply(ticket);
-      const tree = await page.evaluate(() => window.__prevueWeb.tree());
+      const tree = await this.readTree(page);
       ticket.check();
       return tree;
     });
