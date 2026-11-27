@@ -80,11 +80,14 @@ async function main() {
     const contents=await readFile(loc.log,'utf8').catch(()=>{throw new PreviewFailure('RUNTIME_UNAVAILABLE','No log for this project/platform',3);});
     console.log(JSON.stringify({ok:true,log:contents.trimEnd().split('\n').slice(-Number(args.lines))}));return;
   }
+  let launchMs: number | undefined;
   let record=await loadInstance(loc.record);
   if(!record || !await isAlive(record,loc.key)) {
     if(cmd!=='show') throw new PreviewFailure('RUNTIME_UNAVAILABLE','Run prevue rn show <file> for this project and platform',3);
     await mkdir(loc.dir,{recursive:true,mode:0o700});
+    const started=performance.now();
     record=await launch(root,platform,device);
+    launchMs=Math.round(performance.now()-started);
   }
   if(device && device!==record.device) throw new PreviewFailure('DEVICE_IN_USE','This project already has a session on another device',3);
   const viewer=record.url+'/?'+new URLSearchParams({session:record.token,...(parsed.lang?{lang:parsed.lang}:{})});
@@ -98,10 +101,14 @@ async function main() {
     }
     console.log(JSON.stringify({ok:true,opened,viewer}));return;
   }
+  const requested=performance.now();
   const response=await fetch(record.url+'/command/'+cmd,{method:'POST',headers:{authorization:'Bearer '+record.token,'content-type':'application/json'},
     signal:AbortSignal.timeout(180000),body:JSON.stringify(args)});
   const data=await response.json();
-  if(cmd==='show' && response.ok) await atomicWrite(loc.active,platform);
+  if(cmd==='show' && response.ok) {
+    data.timings={launchMs:launchMs ?? null,boardMs:Math.round(performance.now()-requested)};
+    await atomicWrite(loc.active,platform);
+  }
   if(['show','board','status','focus','wait','render'].includes(cmd)) data.viewer=viewer;
   console.log(JSON.stringify(data));
   if(!response.ok || data.ok===false) process.exitCode=data.exitCode ?? 1;

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -27,7 +27,7 @@ test('CLI validates usage, forwards text literally and accepts a generation barr
 const caps: Capabilities={screenshot:true,interactiveInput:false,uiTree:false,sourceLocation:false,viewportResize:false,
   themeOverride:false,nativeInsets:false,animationFrameControl:false,stateReset:false};
 test('an old acknowledgement or failed bundle never satisfies a save; a later generation recovers',async t=>{
-  const dir=await mkdtemp(path.join(tmpdir(),'prevue-session-')); t.after(()=>rm(dir,{recursive:true,force:true}));
+  const dir=await realpath(await mkdtemp(path.join(tmpdir(),'prevue-session-'))); t.after(()=>rm(dir,{recursive:true,force:true}));
   const file=path.join(dir,'A.preview.tsx');
   const source="import {definePreview} from '@prevue/react-native'; export const One=definePreview({render:()=>null});";
   await writeFile(path.join(dir,'package.json'),JSON.stringify({dependencies:{'react-native':'*'}}));
