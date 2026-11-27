@@ -1,0 +1,222 @@
+{
+  "date": "2026-11-27",
+  "fixture": "fixtures/react-native-bare/Shipment.preview.tsx",
+  "environment": {
+    "host": "Apple M4 Pro, 14 logical CPUs, 48 GiB",
+    "os": "macOS 27.2.1 (26B131)",
+    "node": "26.7.0",
+    "reactNative": "0.82.1",
+    "react": "19.1.1",
+    "emulator": "PrevueNativeFixture (emulator-5564), emulator 36.2.12.0, ARM64",
+    "android": "Android 16, API 36, BE2A.250530.026.F3/13894323",
+    "physicalPixels": [1080, 2400],
+    "adb": "37.0.0",
+    "installedPackage": "com.prevue.nativefixture (Debug), lastUpdateTime 2026-11-27 17:04:02"
+  },
+  "method": {
+    "unit": "milliseconds",
+    "sample": "One new foreground prevue rn render process through JSON response, after show and focus. CLI includes startup, IPC, React commit, full PNG and accessibility tree.",
+    "conditions": "Single continuous AVD boot, same installed APK, fixture directory, PREVUE_HOME and Metro disk cache. Each block starts a fresh daemon.",
+    "quantiles": "Nearest rank uses sorted[ceil(n*q)-1]. Each published revision has two 15-render blocks.",
+    "budgetCliP50Ms": 2000
+  },
+  "before": {
+    "revision": "1878e45d6060d9f4104e81ee880a8c4492029192",
+    "runs": [
+      {
+        "cliMs": [2514, 2473, 2493, 2513, 2507, 2491, 2484, 2490, 2484, 2461, 2489, 2472, 2460, 2459, 2482],
+        "rendererMs": [2155, 2126, 2128, 2147, 2147, 2145, 2130, 2117, 2109, 2113, 2122, 2120, 2112, 2117, 2121]
+      },
+      {
+        "cliMs": [2578, 2541, 2576, 2618, 2580, 2572, 2589, 2538, 2503, 2513, 2534, 2502, 2561, 2531, 2523],
+        "rendererMs": [2162, 2153, 2177, 2191, 2174, 2168, 2189, 2167, 2147, 2150, 2166, 2117, 2164, 2166, 2156]
+      }
+    ],
+    "pooled": {
+      "cliMs": {
+        "p50": 2507,
+        "p95": 2589
+      },
+      "rendererMs": {
+        "p50": 2147,
+        "p95": 2189
+      }
+    }
+  },
+  "after": {
+    "revision": "9d7089402f85268a5a06efddf007efd9760a4e8d",
+    "runs": [
+      {
+        "cliMs": [1685, 1651, 1651, 1637, 1651, 1631, 1639, 1638, 1638, 1638, 1634, 1633, 1637, 1661, 1635],
+        "rendererMs": [1308, 1277, 1275, 1266, 1276, 1265, 1272, 1274, 1270, 1264, 1262, 1264, 1269, 1285, 1267]
+      },
+      {
+        "cliMs": [1671, 1660, 1622, 1622, 1645, 1627, 1625, 1633, 1639, 1638, 1631, 1620, 1624, 1623, 1618],
+        "rendererMs": [1306, 1291, 1255, 1260, 1272, 1267, 1264, 1267, 1273, 1275, 1270, 1261, 1260, 1259, 1253]
+      }
+    ],
+    "pooled": {
+      "cliMs": {
+        "p50": 1637,
+        "p95": 1671
+      },
+      "rendererMs": {
+        "p50": 1267,
+        "p95": 1306
+      }
+    }
+  },
+  "profilingMs": {
+    "png": [107, 118, 121, 117, 118],
+    "dump": [1934, 1944, 1935, 1931, 1922],
+    "read": [21, 25, 27, 28, 26],
+    "remove": [18, 20, 19, 21, 20],
+    "stream-first": [1109, 1107, 1104, 1116, 1109],
+    "stream-complete": [1109, 1107, 1104, 1116, 1109],
+    "stream-exit": [1948, 1943, 1948, 1958, 1937]
+  },
+  "backToBackNativeDumps": [
+    {
+      "xml": 1105,
+      "confirmed": 1112,
+      "processExit": 1929,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1110,
+      "confirmed": 1111,
+      "processExit": 1944,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1127,
+      "confirmed": 1130,
+      "processExit": 1961,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1121,
+      "confirmed": 1123,
+      "processExit": 1956,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1134,
+      "confirmed": 1137,
+      "processExit": 1972,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1124,
+      "confirmed": 1124,
+      "processExit": 1950,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1127,
+      "confirmed": 1132,
+      "processExit": 1966,
+      "exitCode": 0,
+      "nodes": 31
+    },
+    {
+      "xml": 1114,
+      "confirmed": 1115,
+      "processExit": 1946,
+      "exitCode": 0,
+      "nodes": 31
+    }
+  ],
+  "developmentRuns": {
+    "note": "Two intermediate implementations measured during development, before the final framing and error-handling changes.",
+    "runs": [
+      {
+        "cliMs": [1759, 1681, 1771, 2396, 2081, 1742, 1669, 1680, 1684, 1671, 1676, 1674, 1677, 1658, 1688],
+        "rendererMs": [1356, 1283, 1334, 1641, 1350, 1307, 1277, 1291, 1298, 1274, 1278, 1293, 1288, 1282, 1295]
+      },
+      {
+        "cliMs": [1724, 1668, 1691, 1688, 1640, 1652, 1654, 1651, 1681, 1676, 1695, 1670, 1678, 1719, 1702],
+        "rendererMs": [1322, 1275, 1298, 1290, 1258, 1267, 1270, 1267, 1292, 1284, 1306, 1279, 1283, 1316, 1277]
+      }
+    ]
+  },
+  "verification": {
+    "checks": [
+      "independent fresh PNG and JSON path for each render",
+      "physical viewport, PNG header, preview ID, generation, route text and button test ID",
+      "point, selection, tap, controlled text input and receipt, reset, scroll"
+    ],
+    "referenceMethod": "After an extra settled render in each state, watch the next PNG creation and read the framebuffer again with adb exec-out screencap -p. Compare full PNG bytes. Dump the same active window to a UUID-named device file and compare the full normalized accessibility tree.",
+    "states": [
+      {
+        "state": "initial",
+        "beforeAfterWholeTreeEqualInBothPairs": true,
+        "nodes": 31,
+        "rendererPngSha256": "86b8a347bb26d5a7b0a1711f7b9f536795a80dbadaa174df4d816b7382391dca",
+        "directAdbPngSha256": "86b8a347bb26d5a7b0a1711f7b9f536795a80dbadaa174df4d816b7382391dca",
+        "rendererTreeSha256": "ee9e7244dbdf2df11fbf3fdca19ddf348590d6910a0bfb397be66e308e2590d3",
+        "fileDumpXmlSha256": "d460d60752539406977b11890947849f3b4804d77eeb59563f829fafa8c43d3d",
+        "fullReferenceTreeEqual": true
+      },
+      {
+        "state": "tapped",
+        "beforeAfterWholeTreeEqualInBothPairs": true,
+        "nodes": 31,
+        "rendererPngSha256": "44185dc04927a5d0304c806a1b5d3a09fc40b3e60a0f0a72710d0483b4fb3992",
+        "directAdbPngSha256": "44185dc04927a5d0304c806a1b5d3a09fc40b3e60a0f0a72710d0483b4fb3992",
+        "rendererTreeSha256": "025f513a1cf351cae1ff7ca650d621a452694d1d1c59e30d04ff9608f3463292",
+        "fileDumpXmlSha256": "2d8738b7994700faaad41eda7034c459a4ac70d2f616720caa4b83d0e103d82a",
+        "fullReferenceTreeEqual": true
+      },
+      {
+        "state": "typed",
+        "beforeAfterWholeTreeEqualInBothPairs": true,
+        "nodes": 23,
+        "rendererPngSha256": "80a05d785c0d912669c471888f784c478b9bde287467c4c98aa2379b4e5bbcbf",
+        "directAdbPngSha256": "80a05d785c0d912669c471888f784c478b9bde287467c4c98aa2379b4e5bbcbf",
+        "rendererTreeSha256": "5bb510c1102417dd02c06d6a7734d86040df9e4398f8126995480cad74f0108b",
+        "fileDumpXmlSha256": "f5e8eebfddee1cf29e49d57c991119888e699258b509196b784ae800e17810b0",
+        "fullReferenceTreeEqual": true
+      },
+      {
+        "state": "reset",
+        "beforeAfterWholeTreeEqualInBothPairs": true,
+        "nodes": 31,
+        "rendererPngSha256": "2961703b040f9e48644a6da2fb694ff4a5695f9cc93ab3b4660dba9a9cdade27",
+        "directAdbPngSha256": "2961703b040f9e48644a6da2fb694ff4a5695f9cc93ab3b4660dba9a9cdade27",
+        "rendererTreeSha256": "ee9e7244dbdf2df11fbf3fdca19ddf348590d6910a0bfb397be66e308e2590d3",
+        "fileDumpXmlSha256": "d460d60752539406977b11890947849f3b4804d77eeb59563f829fafa8c43d3d",
+        "fullReferenceTreeEqual": true
+      },
+      {
+        "state": "scrolled",
+        "beforeAfterWholeTreeEqualInBothPairs": true,
+        "nodes": 31,
+        "rendererPngSha256": "b421b750b0c2e1408c4d2340742569f9aec2d352c6a1161d12c9e9db353881f0",
+        "directAdbPngSha256": "b421b750b0c2e1408c4d2340742569f9aec2d352c6a1161d12c9e9db353881f0",
+        "rendererTreeSha256": "6fc23c6c348fe1e022dd2fe6024c4b16875924bac03f770bf8abd0a379e290cb",
+        "fileDumpXmlSha256": "de1797c294874547765d2f7b399acbc17991b2ccbbc7b5109fff6dae1ccd6ef6",
+        "fullReferenceTreeEqual": true
+      }
+    ],
+    "refreshGenerations": {
+      "before": 3,
+      "edited": 4,
+      "broken": 5,
+      "recovered": 6,
+      "error": "RUNTIME_FAILED"
+    },
+    "publishedInitialFrame": {
+      "beforePngSha256": "adebfd13a3810b257ddf520a1aaa6cf9b74198feae9078c902cfb53234f7647d",
+      "afterPngSha256": "bb35b6b828d87b522f690ac38fa5e8c78954ec70972e17b7b5d41a6e66a09b11",
+      "differentPixelBoundsXYXY": [76, 52, 948, 80],
+      "description": "Time-separated initial images differ only in the Android status bar. The published tree is the same in both images."
+    }
+  }
+}
