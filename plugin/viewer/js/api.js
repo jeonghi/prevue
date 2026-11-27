@@ -31,4 +31,14 @@ function c({ open: e, state: t, ui: n, error: r }) {
 	}
 	document.addEventListener("visibilitychange", a), a();
 }
-export { c as connect, s as fetchGalleryCard, o as fetchPreviewFiles, a as fetchProjectFiles, t as get, e as post, i as reportStreamWidth, r as viewerStream };
+var l = () => fetch("/rn/platforms").then((e) => {
+	if (!e.ok) throw Error("Platform list unavailable");
+	return e.json();
+});
+function u(e) {
+	let t = new URL("/rn/platform", location.origin);
+	t.searchParams.set("target", e);
+	let n = new URL(location.href).searchParams.get("lang");
+	n && t.searchParams.set("lang", n), location.assign(t);
+}
+export { c as connect, s as fetchGalleryCard, l as fetchPlatforms, o as fetchPreviewFiles, a as fetchProjectFiles, t as get, u as openPlatform, e as post, i as reportStreamWidth, r as viewerStream };

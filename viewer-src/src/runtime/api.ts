@@ -44,3 +44,15 @@ export function connect({ open, state, ui, error }: { open(): void; state(state:
   document.addEventListener("visibilitychange", visible);
   visible();
 }
+
+export type PreviewPlatform = 'web' | 'ios' | 'android';
+export type PlatformSession = { platform: PreviewPlatform; available: boolean };
+export const fetchPlatforms = (): Promise<{ platforms: PlatformSession[] }> =>
+  fetch('/rn/platforms').then(response => { if (!response.ok) throw Error('Platform list unavailable'); return response.json(); });
+export function openPlatform(target: PreviewPlatform) {
+  const url = new URL('/rn/platform', location.origin);
+  url.searchParams.set('target', target);
+  const lang = new URL(location.href).searchParams.get('lang');
+  if (lang) url.searchParams.set('lang', lang);
+  location.assign(url);
+}

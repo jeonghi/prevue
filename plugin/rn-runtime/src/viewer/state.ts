@@ -85,9 +85,11 @@ export function viewerState(state: ViewerSnapshot, url: ArtifactUrl): ViewerStat
     return c.ok && r ? [{label:c.label, ms:r.durationMs, over:false, text:`${Math.round(r.durationMs)} ms`, head:false}] : [];
   });
   if (timing.length) (timing.find(t => t.label === preview?.name) ?? timing[0]).head = true;
+  const rebuildRequired = state.error?.code === 'NATIVE_BUILD_REQUIRED' ||
+    Object.values(state.results).some(result => result.error?.code === 'NATIVE_BUILD_REQUIRED');
   return {
     version:state.version,
-    runtime:{framework:'react-native', platform:state.platform, label, capabilities:state.capabilities, generation:state.generation},
+    runtime:{framework:'react-native', platform:state.platform, label, rebuildRequired, capabilities:state.capabilities, generation:state.generation},
     header:{title:repoLeaf, tabTitle:fileName ?? repoLeaf, repoPrefix:dirname(state.projectRoot), repoLeaf,
       module:'', variant:label, repo:state.projectRoot, branch:null, sourceSet:null},
     screen:focus ? 'focus' : previews.length ? 'board' : state.activeFile ? 'vacant' : 'empty',
@@ -95,7 +97,7 @@ export function viewerState(state: ViewerSnapshot, url: ArtifactUrl): ViewerStat
       file:state.activeFile, gen:state.generation, focus:boardFocus,
       groups:[{name:fileName, cards, failed:cards.filter(c => c.failure).length}],
     } : null,
-    focus, stale, busy:state.busy, buildPending:false,
+    focus, stale, busy:state.busy, buildPending:rebuildRequired,
     boardNote:state.busy ? {t:'status.rendering'} : fileName ? {t:'status.board', a:{n:cards.length, file:fileName}} : null,
     who:null, timing, error:state.error?.message ?? card?.failure ?? null, selection:selectionOf(state, url), choice:null,
     tabs:state.tabs.map(key => ({ key, name:basename(key), dim:'', module:null, sourceSet:null, title:key,
