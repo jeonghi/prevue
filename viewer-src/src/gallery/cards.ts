@@ -25,8 +25,8 @@ export function moduleOf(m: string | null | undefined): string {
 
 export const byChanged = (files: PreviewFile[]) => [...files].sort((a, b) => b.mtime - a.mtime || a.rel.localeCompare(b.rel));
 
-export const cardKey = (f: Pick<PreviewFile, 'path' | 'mtime'>) => `${f.mtime} ${f.path}`;
+export const cardKey = (f: Pick<PreviewFile, 'path' | 'mtime' | 'revision'>) => `${f.revision ?? f.mtime} ${f.path}`;
 
 export const cachedView = (f: Pick<PreviewFile, 'shots'>): CardView | null => (f.shots ? viewOf(f.shots) : null);
 
-export const stale = (f: Pick<PreviewFile, 'mtime'>, image: { at?: number } | null | undefined) => image?.at != null && f.mtime > image.at;
+export const stale = (f: Pick<PreviewFile, 'mtime'>, image: { at?: number; stale?: boolean } | null | undefined) => !!image?.stale || (image?.at != null && f.mtime > image.at);

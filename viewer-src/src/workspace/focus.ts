@@ -8,7 +8,7 @@ import { store } from '../runtime/store';
 import { phrase } from '../runtime/strings';
 import { findCard, type Focus, type ViewerState } from '../state';
 import { drag, dropPress, letGo, press, pressing, release, wheel } from './input';
-import { byPick, clearPick, containScale, flatten, hitIn, hover, leave, narrow, outline, pointAt, pointedImage, posIn, type Hit, type TreeNode } from './point';
+import { byPick, clearPick, containScale, flatten, hitIn, hover, leave, narrow, outline, pointAt, pointedImage, posIn, treeNodes, type Hit, type TreeReply } from './point';
 import { createResizeController } from './resize';
 import { zoomView } from './view';
 
@@ -96,10 +96,10 @@ export function createWorkspace({ focusView, wrap, stage, shot, box, pickBox, ma
   }
   async function fetchTree(url: string) {
     try {
-      const d: { failure?: unknown; composeViewInfo?: TreeNode[] } = await get(url).then(r => { if (!r.ok) throw new Error(phrase('focus.tree.http', { status: r.status })); return r.json(); });
+      const d: TreeReply = await get(url).then(r => { if (!r.ok) throw new Error(phrase('focus.tree.http', { status: r.status })); return r.json(); });
       if (url !== treeUrl) return;                     // 그 사이에 새 그림이 왔다
       if (d.failure) { ready = false; return; }        // 실패 문장은 state.error 가 갖는다
-      all = flatten(d.composeViewInfo || []).sort(byPick);
+      all = flatten(treeNodes(d, url)).sort(byPick);
       nodes = narrow(all);
       setSummary(store.projectFiles.size ? '' : phrase('focus.noIndex', { n: all.length }));
       // 새 트리다 — 옛 트리로 가리킨 카드는 틀린 말이라 걷는다. 같은 노드를 추정해 다시 찾지 않는다(가리키기 카드 · 결정).
@@ -128,11 +128,14 @@ export function createWorkspace({ focusView, wrap, stage, shot, box, pickBox, ma
     }
     const st = store.st!;
     stage.style.cursor = interactive ? 'pointer' : 'crosshair';
-    if (f.treeUrl !== treeUrl) loadFocusTree(f.treeUrl);
-    if (resizeUI.update(f, st.error)) return;
+    if (!f.treeUrl) { ready = false; treeUrl = null; all = []; nodes = []; }
+    else if (f.treeUrl !== treeUrl) loadFocusTree(f.treeUrl);
+    if (st.runtime) resizeUI.disable();
+    else if (resizeUI.update(f, st.error)) return;
     setZoom(zoom.z, zoom.x, zoom.y, false);
     // 인터랙티브면 MJPEG 스트림, 아니면 마지막 PNG. 스트림 주소는 태스크가 걸린 뒤에만 온다 — 그 전에는 카드의 마지막 그림이다.
     const want = interactive ? (f.streamUrl ? viewerStream(f.streamUrl) : findCard(st.board, st.board?.focus)?.imageUrl || '') : f.imageUrl;
+    if (!want) { shot.removeAttribute('src'); shot.dataset.url = ''; return; }
     if (shot.dataset.url !== want) { if (want.startsWith('/stream')) sentW = 0; swapImage(shot, want); }
   }
 
@@ -493,6 +496,6 @@ export function frameOf(el: HTMLElement | null): Frame | null {
 }
 
 /* ---------- 의도 ---------- */
-export function enterFocus(i: number) { post('/viewer/focus', { index: i }).catch(e => setStatus(phrase('focus.enter.failed', { why: (e as Error).message }), 'error')); }
+export function enterFocus(i: number) { if (store.st?.runtime?.capabilities.interactiveInput === false) return; post('/viewer/focus', { index: i }).catch(e => setStatus(phrase('focus.enter.failed', { why: (e as Error).message }), 'error')); }
 export function exitFocus() { if (store.st && store.st.focus) post('/viewer/exit'); }
 export function pickSystemUi(choice: string) { post('/viewer/systemUi', { systemUi: choice }).catch(e => flash(phrase('request.failed', { why: (e as Error).message }))); }

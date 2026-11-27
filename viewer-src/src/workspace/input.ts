@@ -55,3 +55,16 @@ export function wheel(x: number, y: number, dx: number, dy: number) {
     return post('/viewer/wheel', { x: Math.round(a.x), y: Math.round(a.y), dx: a.dx, dy: a.dy });
   }).catch(() => {});
 }
+
+// Clicks and forwarded text share a queue: the remote input must receive its press/release before its text.
+export function sendText(text: string): Promise<void> {
+  const request = touchChain.then(async () => {
+    const response = await post('/viewer/type', { text });
+    if (!response.ok) {
+      const reply = await response.json().catch(() => null);
+      throw new Error(reply?.error?.message || reply?.message || `HTTP ${response.status}`);
+    }
+  });
+  touchChain = request.catch(() => {});
+  return request;
+}
