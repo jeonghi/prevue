@@ -50,7 +50,9 @@ export function stream(res: ServerResponse, url: URL, host: ViewerHost) {
     return;
   }
   res.writeHead(200, {'Content-Type':`multipart/x-mixed-replace; boundary=${boundary}`, 'Cache-Control':'no-store'});
-  res.write('--' + boundary + '\r\n');
+  // Chromium publishes the preceding image after it has parsed the next part's headers.
+  const part = Buffer.from('--' + boundary + '\r\nContent-Type: image/png\r\n\r\n');
+  res.write(part);
   const viewer = requested.get('v');
   let clients = viewers.get(host);
   if (!clients) { clients = new Map(); viewers.set(host, clients); }
@@ -72,10 +74,7 @@ export function stream(res: ServerResponse, url: URL, host: ViewerHost) {
       const bytes = await readFile(path);
       if (path === frame() && !res.destroyed && !res.writableEnded) {
         sent = path;
-        blocked = !res.write(Buffer.concat([
-          Buffer.from('Content-Type: image/png\r\nContent-Length: ' + bytes.length + '\r\n\r\n'),
-          bytes, Buffer.from('\r\n--' + boundary + '\r\n'),
-        ]));
+        blocked = !res.write(Buffer.concat([bytes, Buffer.from('\r\n'), part]));
       }
     } catch (error) {
       res.destroy(error instanceof Error ? error : new Error(String(error)));

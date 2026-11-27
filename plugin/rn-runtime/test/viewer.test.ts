@@ -216,7 +216,7 @@ test('PNG stream sends current immutable frames and releases clients when focus 
     return data;
   }
   const first = await through('frame-one\r\n--prevueframe\r\n');
-  assert.match(first, /Content-Type: image\/png\r\nContent-Length: 9/);
+  assert.ok(first.endsWith('--prevueframe\r\nContent-Type: image/png\r\n\r\n'));
   result.imagePath = path.join(state.projectRoot, 'next.png');
   await writeFile(result.imagePath, 'frame-two');
   publish();
