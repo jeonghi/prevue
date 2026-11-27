@@ -7,6 +7,7 @@ export type Source = { file: string; line: number; column?: number };
 export interface PreviewDescriptor {
   id: string;
   framework: 'react-native' | 'compose';
+  format?: 'csf';
   source: Source & { exportName: string };
   name: string;
   platforms: Platform[];

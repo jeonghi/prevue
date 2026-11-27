@@ -1,0 +1,16 @@
+{
+  "name": "@prevue-fixtures/react-native-expo",
+  "private": true,
+  "version": "0.1.0",
+  "dependencies": {
+    "expo": "54.0.38",
+    "@expo/metro-runtime": "6.1.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-web": "0.21.4"
+  },
+  "devDependencies": {
+    "@prevue/react-native": "file:../../plugin/rn-runtime/packages/react-native"
+  }
+}

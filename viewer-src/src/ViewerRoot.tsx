@@ -60,18 +60,18 @@ export function ViewerRoot({ state, draw = 0, statusState = state, connection = 
   const screen = gallery ? 'gallery' : state?.screen ?? null;
   if (!hosts) return null;
   return <>
-    <ProjectHeader header={state?.header ?? null} tabs={state?.tabs ?? []} app={app} host={hosts.app} brand={hosts.brand} />
+    <ProjectHeader runtime={state?.runtime} header={state?.header ?? null} tabs={state?.tabs ?? []} app={app} host={hosts.app} brand={hosts.brand} />
     <StatusPill state={statusState} connection={connection} host={hosts.status} bar={hosts.bar} />
     <HelpButton host={hosts.helpButton} />
     <FileRail tabs={state?.tabs ?? null} screen={state?.screen ?? null} gallery={gallery} hosts={hosts.rail} />
     <GalleryEntry on={gallery} count={ready ? files?.length ?? null : null} host={hosts.railAll} />
     <StaleBanner rows={state?.stale ?? null} host={hosts.stale} />
-    <BuildNotice pending={!!state?.buildPending} host={hosts.buildNotice} />
+    <BuildNotice native={state?.runtime?.rebuildRequired} pending={!!state?.buildPending} host={hosts.buildNotice} />
     <Gallery shown={gallery} state={state} draw={draw} host={hosts.gallery} />
     <PreviewBoard board={state?.board ?? null} screen={screen} hosts={hosts.board} actions={board} />
     <QuickOpen state={state} draw={draw} connection={connection} hosts={hosts.quickOpen} />
     <VacantTab screen={screen} vacant={state?.vacant ?? null} host={hosts.vacant} />
-    <Workspace screen={state?.screen ?? null} systemUi={state?.focus?.systemUi ?? null} deviceInsets={state?.focus?.deviceInsets ?? null} size={state?.focus?.size ?? null} hosts={hosts.workspace} actions={workspace} dock={dock} />
+    <Workspace screen={state?.screen ?? null} runtime={state?.runtime} interactive={state?.focus?.interactive} systemUi={state?.focus?.systemUi ?? null} deviceInsets={state?.focus?.deviceInsets ?? null} size={state?.focus?.size ?? null} hosts={hosts.workspace} actions={workspace} dock={dock} />
     <WorkspaceHeader state={state} hosts={hosts.workspaceHeader} actions={workspace} />
     <PointOverlay actions={point} />
     <ChoicePopover choice={state?.choice ?? null} repo={state?.header?.repo} host={hosts.chooser} actions={point} />

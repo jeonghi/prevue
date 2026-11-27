@@ -310,5 +310,19 @@
   "insetOverlay.kind.systemOverlays": "OVERLAY",
   "point.card.compose": "Compose",
   "point.card.library": "Library",
-  "point.card.library.title": "Composable from an external library — defined outside the project and androidx"
+  "point.card.library.title": "Composable from an external library — defined outside the project and androidx",
+  "rn.platform": "Preview platform",
+  "rn.platformStopped": "{name} (session stopped)",
+  "rn.rebuild": "Rebuild and reinstall the native Debug Host.",
+  "rn.generation": "Generation {n}",
+  "rn.stale": "{name} · showing generation {image} of {current}",
+  "rn.sourceUnavailable": "Source location unavailable for this element",
+  "rn.input": "Text for focused input",
+  "rn.send": "Send",
+  "rn.reset": "Reset",
+  "rn.element": "Selected element",
+  "rn.text": "Text",
+  "rn.accessibilityRole": "Role",
+  "rn.accessibilityLabel": "Accessible name",
+  "rn.testId": "Test ID"
 }

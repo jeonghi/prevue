@@ -10,7 +10,7 @@ export const zoomView = createStore<ZoomView>({ pct: 100, real: false, atFit: tr
 export type LoadingView = { on: boolean; failed: boolean };
 export const loadingView = createStore<LoadingView>({ on: false, failed: false });
 
-export type PointNode = { name?: string | null; fileName: string; lineNumber: number; bounds: number[]; chain?: string[]; uchain?: string[]; origin?: 'compose' | 'project' | 'library' };
+export type PointNode = { nodeId?: string; treeUrl?: string; text?: string; accessibilityLabel?: string; accessibilityRole?: string; testId?: string; name?: string | null; fileName: string; lineNumber: number; bounds: number[]; chain?: string[]; uchain?: string[]; origin?: 'compose' | 'project' | 'library' };
 export type PointSay = { msg: string | null; ref?: string; copied?: boolean; file?: string; again?: () => void };
 
 export type CardRow = { id: string; name: string };

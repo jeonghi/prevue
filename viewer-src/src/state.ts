@@ -17,7 +17,21 @@ export type Size = DpSize & (
 );
 type ContractBoard = NonNullable<ContractState['board']>;
 type ContractCard = ContractBoard['groups'][number]['cards'][number];
+export type RuntimeInfo = {
+  framework: 'react-native';
+  rebuildRequired?: boolean;
+  platform: 'web' | 'ios' | 'android';
+  label: string;
+  generation: number;
+  capabilities: {
+    screenshot: boolean; interactiveInput: boolean; uiTree: boolean; sourceLocation: boolean; viewportResize: boolean;
+    themeOverride: boolean; nativeInsets: boolean; animationFrameControl: boolean; stateReset: boolean;
+  };
+};
 export type Card = Omit<ContractCard, 'ok' | 'imageUrl' | 'treeUrl' | 'failure' | 'widthDp' | 'heightDp' | 'specs'> & {
+  functionName?: string;
+  interactive?: boolean;
+  freshness?: { status: 'waiting' | 'ready' | 'stale' | 'error'; generation: number; imageGeneration: number | null };
   ok: boolean | null;
   imageUrl: string | null;
   treeUrl: string | null;
@@ -39,15 +53,22 @@ export type DeviceInsets = {
   posture: string; basisPosture: string;
   values: { statusBars: InsetEdges; navigationBars: InsetEdges; captionBar: InsetEdges; displayCutout: InsetEdges; systemOverlays: InsetEdges };
   evidence: { source: string; sourceUrl: string; kind: string } };
-export type Focus = Omit<NonNullable<ContractState['focus']>, 'size' | 'postures' | 'pxPerDp' | 'systemUi' | 'deviceInsets'> & {
+export type Focus = Omit<NonNullable<ContractState['focus']>, 'size' | 'postures' | 'pxPerDp' | 'systemUi' | 'deviceInsets' | 'name'> & {
+  name: string | null;
   pxPerDp: number | null;
   size: Size | null;
   systemUi: SystemUi | null;
   deviceInsets?: DeviceInsets | null;
   postures: Array<{ size: Size | (DpSize & { kind: 'original'; preset: string }); imageUrl: string }>;
 };
-export type ViewerState = Omit<ContractState, 'screen' | 'header' | 'board' | 'focus' | 'stale' | 'boardNote' | 'who' | 'error' | 'settle' | 'vacant' | 'timing' | 'tabs'> & {
+type Selection = ContractState['selection'];
+export type ViewerState = Omit<ContractState, 'screen' | 'header' | 'board' | 'focus' | 'stale' | 'boardNote' | 'who' | 'error' | 'settle' | 'vacant' | 'timing' | 'tabs' | 'selection'> & {
   boot?: string;
+  runtime?: RuntimeInfo;
+  selection: null | (Omit<Selection, 'at' | 'by' | 'file' | 'ref' | 'line' | 'image' | 'tree'> & {
+    at?: string; by?: string; file: string | null; ref: string | null; line: number | null;
+    image: string | null; tree: string | null; nodeId?: string;
+  });
   screen: 'empty' | 'board' | 'focus' | 'vacant';
   header: Omit<ContractState['header'], 'branch' | 'sourceSet'> & { branch: string | null; sourceSet: string | null };
   board: Board | null;
