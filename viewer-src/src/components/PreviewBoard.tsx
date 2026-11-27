@@ -146,7 +146,7 @@ export const PreviewCard = memo(function PreviewCard({ card: c, fn, cursor = fal
   const { phrase, daemonText } = useMessages();
   const stage = useRef<HTMLDivElement>(null), img = useRef<HTMLImageElement>(null);
   const box = useRef<HTMLDivElement>(null), pick = useRef<HTMLDivElement>(null), marks = useRef<HTMLDivElement>(null);
-  const ok = !!(c.ok && c.imageUrl);
+  const ok = !!(c.imageUrl && (c.ok || c.freshness?.status === 'stale'));
 
   useLayoutEffect(() => {
     if (!actions) return;
@@ -173,7 +173,7 @@ export const PreviewCard = memo(function PreviewCard({ card: c, fn, cursor = fal
     <div className="label">
       {/* 좁은 칸에서 이름이 말줄임되므로 툴팁 첫 줄에 이름 전체를 둔다. */}
       <span className="fn" title={c.label ? c.label + '\n' + c.title : c.title}>{c.label}</span>
-      <button className="go" type="button" title={phrase('card.go.tip')} onClick={() => { setCursor(c.index); actions?.open(c.index); }}>{GO}<span className="go-t">{phrase('card.go')}</span></button>
+      <button className="go" type="button" disabled={c.interactive === false} title={phrase('card.go.tip')} onClick={() => { setCursor(c.index); actions?.open(c.index); }}>{GO}<span className="go-t">{phrase('card.go')}</span></button>
       <div className="sub"><Specs card={c} /></div>
     </div>
     <div className="cstage" ref={stage}>
@@ -195,7 +195,7 @@ export function PreviewGroup({ group, marks = NO_MARKS, actions }: { group: Grou
       <span className="bad">{group.failed ? `· ${phrase('board.failed', { n: group.failed })}` : ''}</span>
     </span></div>
     <div className="gbody"><div className="board">{group.cards.map(c =>
-      <PreviewCard key={c.index} card={c} fn={group.name} cursor={marks.cursor === c.index} returned={marks.returned === c.index} actions={actions} />)}</div></div>
+      <PreviewCard key={c.index} card={c} fn={c.functionName ?? group.name} cursor={marks.cursor === c.index} returned={marks.returned === c.index} actions={actions} />)}</div></div>
   </section>;
 }
 

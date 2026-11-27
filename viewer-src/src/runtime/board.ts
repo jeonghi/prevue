@@ -71,14 +71,14 @@ export function applyReveal() {
   if (!fn) return;
   // 한 장뿐인 함수도 묶음이라(D-62) 함수 이름이 곧 묶음이다.
   const d = [...cardsEl()!.querySelectorAll<HTMLElement>(".group")].find(g => g.dataset.fn === fn);
-  const first = d && d.querySelector<HTMLElement>(".card");
+  const first = d?.querySelector<HTMLElement>(".card") ?? [...cardsEl()!.querySelectorAll<HTMLElement>(".card")].find(c => c.dataset.fn === fn);
   if (!first) return;
   mark({ cursor: Number(first.dataset.i) });
   revealed = marks.cursor; revealedAt = performance.now();
   // 작업 공간에서 막 돌아왔으면 PreviewBoard 가 잰 폭은 작업 공간의 것이다(body.ws 를 걷기 전) — 먼저 다시 재야 잰 자리가 맞는다.
   relayout();
   // 묶음 머리가 헤더 아래 붙는다(sticky) — 머리째 보이게 그만큼 띄운다.
-  pin(d);
+  pin(d ?? first);
 }
 
 /**

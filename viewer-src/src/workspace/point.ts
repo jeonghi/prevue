@@ -12,6 +12,28 @@ import { pointView, type CardModifier, type CardPreview, type CardRow, type Poin
 export type TreeNode = PointNode & { children?: TreeNode[]; modifiers?: CardModifier[] };
 export type Hit = TreeHit & { area: number; chain: string[]; uchain: string[] };
 
+type RuntimeTreeNode = {
+  id: string; name: string; bounds: { x: number; y: number; width: number; height: number };
+  source?: { file: string; line: number } | null; children: RuntimeTreeNode[];
+  text?: string; accessibilityLabel?: string; accessibilityRole?: string; testId?: string;
+};
+export type TreeReply = { composeViewInfo?: TreeNode[]; nodes?: RuntimeTreeNode[]; failure?: unknown };
+
+export function treeNodes(reply: TreeReply, treeUrl: string): TreeNode[] {
+  if (!reply.nodes) return reply.composeViewInfo || [];
+  const fromRuntime = (n: RuntimeTreeNode): TreeNode => {
+    const { x, y, width, height } = n.bounds;
+    return {
+      nodeId:n.id, treeUrl, name:n.name, fileName:n.source?.file ?? '', lineNumber:n.source?.line ?? 0,
+      bounds:[x, y, x + width, y + height], origin:n.source ? 'project' : undefined,
+      text:n.text, accessibilityLabel:n.accessibilityLabel, accessibilityRole:n.accessibilityRole, testId:n.testId,
+      children:n.children.map(fromRuntime),
+    };
+  };
+  return reply.nodes.map(fromRuntime);
+}
+
+
 const sameBox = (a: number[], b: number[]) => a.every((v, i) => v === b[i]);
 /** 노드 자리의 modifier 체인 — 체인은 레이아웃 노드에 붙는다. 호출 노드(DrinkCard)는 같은 자리를 차지한 첫 레이아웃까지 내려가 그것을 쓴다. */
 function chainAt(n: TreeNode): CardModifier[] | null {
@@ -26,7 +48,7 @@ function chainAt(n: TreeNode): CardModifier[] | null {
  * 노드의 파일 · 라인은 부른 자리라, `Row`도 내 코드가 불렀으면 남고 `ReusableComposeNode` · `Layout`(Compose 안에서 불림)은 빠진다.
  */
 export function flatten(roots: TreeNode[]): Hit[] {
-  const mine = store.projectFiles.size ? (n: TreeNode) => store.projectFiles.has(n.fileName) : () => true;
+  const mine = store.projectFiles.size ? (n: TreeNode) => (n.nodeId ? n.origin === 'project' : store.projectFiles.has(n.fileName)) : () => true;
   const out: Hit[] = [];
   const walk = (list: TreeNode[], chain: string[], uchain: string[], ups: number[]) => {
     for (const n of list) {
@@ -34,7 +56,7 @@ export function flatten(roots: TreeNode[]): Hit[] {
       const [l, t, r, b] = n.bounds, named = chain.concat(n.name ? [n.name] : []);
       const unamed = n.name && mine(n) ? uchain.concat([n.name]) : uchain;
       let below = ups;
-      if (r > l && b > t && n.lineNumber > 0) {
+      if (r > l && b > t && (n.nodeId || n.lineNumber > 0)) {
         const id = out.length;
         out.push({ ...node, id, ups, mods: chainAt(n), area: (r - l) * (b - t), chain: named, uchain: unamed });
         below = ups.concat([id]);
@@ -51,7 +73,7 @@ export function flatten(roots: TreeNode[]): Hit[] {
  * 같은 넓이에서 트리 순서로 고르면 테마의 `CompositionLocalProvider`(Theme.kt)가 잡혀 카드 전체가 칠해졌다. 깊은 쪽이 내 화면의 뿌리다.
  */
 export const byPick = (a: Hit, b: Hit) => a.area - b.area || b.chain.length - a.chain.length;
-export function narrow(list: Hit[]) { return store.projectFiles.size ? list.filter(n => store.projectFiles.has(n.fileName)) : list; }
+export function narrow(list: Hit[]) { return store.projectFiles.size ? list.filter(n => n.nodeId || store.projectFiles.has(n.fileName)) : list; }
 export function hitIn(list: Hit[], x: number, y: number) { return list.find(n => { const [l, t, r, b] = n.bounds; return x >= l && x < r && y >= t && y < b; }); }
 /** 표시 배율. 보드 카드는 폭을 잘라 보이므로 PNG 좌표와 화면 좌표가 다르다 — 가리키기·터치 둘 다 여기를 지난다. */
 // 인터랙티브 스트림은 보이는 크기로 줄여 오므로 좌표의 기준은 원래 크기(data-full-w · data-full-h)다. 없으면 받은 그림의 크기.
@@ -109,7 +131,7 @@ export function outline(marks: HTMLElement, list: Hit[], s: number) {
 }
 
 type Say = (msg: string | null, ref?: string, copied?: boolean, file?: string, again?: () => void) => void;
-type PointReply = { ref?: string; file?: string; needChoice?: boolean; message?: Message };
+type PointReply = { ref?: string; file?: string; needChoice?: boolean; message?: Message; error?: {message?: string} };
 
 /**
  * 가리킨 노드를 데몬에 보낸다. 풀패스는 데몬이 붙이고(베이스네임이 갈리면 state.choice 로 고르게 한다),
@@ -118,9 +140,9 @@ type PointReply = { ref?: string; file?: string; needChoice?: boolean; message?:
 async function point(n: Hit, previewId: string, say: Say) {
   const g = ++gen;
   try {
-    const r: PointReply = await post('/viewer/point', { fileName: n.fileName, line: n.lineNumber, node: n.name || null, chain: n.chain || [], userChain: n.uchain || n.chain || [], bounds: n.bounds, previewId }).then(r => r.json());
+    const r: PointReply = await post('/viewer/point', { nodeId: n.nodeId, treeUrl: n.treeUrl, fileName: n.fileName, line: n.lineNumber, node: n.name || null, chain: n.chain || [], userChain: n.uchain || n.chain || [], bounds: n.bounds, previewId }).then(r => r.json());
     if (g !== gen) return;
-    if (r.ref) copy(r.ref, say, r.file); else if (!r.needChoice) say(daemonText(r.message ?? null) || `${n.fileName}:${n.lineNumber}`);
+    if (r.ref) copy(r.ref, say, r.file); else if (!r.needChoice) say(daemonText(r.message ?? r.error?.message ?? null) || (n.nodeId ? phrase('rn.sourceUnavailable') : `${n.fileName}:${n.lineNumber}`));
   } catch (e) { if (g === gen) { const why = (e as Error).message; say(phrase('point.failed', { why })); flash(phrase('point.failed', { why })); } }
 }
 // 가리키기 · 복사마다 올린다 — 늦게 끝난 앞의 것이 뒤의 결과를 덮지 않게.
@@ -189,8 +211,8 @@ export function pointAt(s: PointSpot, n: Hit) {
 
 function showCard(n: Hit): Say {
   const s = spot!;
-  const tree = store.projectFiles.size ? treeOf(s.list, n) : null;
-  let said: PointSay = { msg: null, ref: `${n.fileName}:${n.lineNumber}` };
+  const tree = store.projectFiles.size || n.nodeId ? treeOf(s.list, n) : null;
+  let said: PointSay = { msg: null, ref: n.nodeId ? undefined : `${n.fileName}:${n.lineNumber}` };
   const card = (): PointCardData => ({
     node: n, say: said, box: boxOf(n, s.dpPerPx), tree, modifiers: n.mods,
     previews: previewsOf(n.name, previewIndex, s.seen), origin: originOf(n, previewIndex),
@@ -305,7 +327,7 @@ export function followChooser(chooser: HTMLElement) {
 
 /* ---------- 보드 카드 위의 가리키기 ---------- */
 export type CardParts = { stage: HTMLElement; img: HTMLImageElement; box: HTMLElement; pick: HTMLElement; marks: HTMLElement };
-type TreeReply = { composeViewInfo?: TreeNode[] };
+
 /**
  * 카드가 자리(그림 · 표시)를 넘기면 이벤트를 단다. 트리는 마우스가 처음 들어올 때 받는다.
  * 그림이 새로 오면(저장 · 다시 그리기) 트리도 새것이라 그 그림의 카드를 걷는다 — 같은 노드를 추정해 다시 찾지 않는다.
@@ -319,7 +341,8 @@ export function pointCard(i: number, { stage, img, box, pick, marks }: CardParts
     if (hit) { list = hit; return list; }
     try {
       const d: TreeReply = await get(c.treeUrl).then(r => r.json());
-      list = narrow(flatten(d.composeViewInfo || []).sort(byPick));
+      if (findCard(store.st?.board, i)?.treeUrl !== c.treeUrl) return null;
+      list = narrow(flatten(treeNodes(d, c.treeUrl)).sort(byPick));
       trees.set(c.treeUrl, list);
     } catch { list = null; }
     return list;
@@ -336,6 +359,8 @@ export function pointCard(i: number, { stage, img, box, pick, marks }: CardParts
     setCursor(i);
     const l = list || await load();
     if (!l) return;
+    const displayed = findCard(store.st?.board, i);
+    if (displayed?.freshness && (!displayed.ok || img.getAttribute('src') !== displayed.imageUrl)) return;
     const n = hitIn(l, ...posIn(e, img));
     if (!n) { if (spot?.img === img) clearPick(); return; }   // 그림의 빈 곳 — 한 장의 ⌥+클릭과 같다
     const c = findCard(store.st?.board, i)!, full = natW(img);

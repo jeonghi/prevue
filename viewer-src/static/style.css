@@ -974,3 +974,17 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 .orientation-pick .zoom-menu { min-width: var(--dock-slider-w); }
 .orientation-pick [aria-checked="true"] { background: var(--primary-container); }
 
+
+/* Text entered here is sent to the input focused inside the captured RN session. */
+.rn-input { display: flex; align-items: center; gap: var(--space-4); }
+.rn-input input { width: min(14em, 28vw); min-width: 0; color: var(--on-surface); background: var(--surface-container);
+  border: 1px solid var(--outline-variant); border-radius: var(--corner-small); padding: var(--space-4) var(--space-8); font: var(--type-body-small); }
+.rn-input .tb-btn { width: auto; padding-inline: var(--space-8); }
+.rn-node-info { margin: 0; font: var(--type-body-small); }
+.rn-node-info > div { display: grid; grid-template-columns: auto 1fr; gap: var(--space-8); }
+.rn-node-info dt { color: var(--on-surface-variant); }
+.rn-node-info dd { margin: 0; overflow-wrap: anywhere; }
+
+.rn-platform {
+  border: 0; padding: 0; color: inherit; background: var(--surface); font: inherit; cursor: pointer;
+}

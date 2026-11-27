@@ -180,7 +180,7 @@ export function PointCard({ card, actions = NO_ACTIONS }: { card: PointCardData;
   const jumpLabel = many ? phrase('point.card.previews', { n: previews.length }) : previews[0] && phrase('point.card.jump', { name: previews[0].fn });
   // 노드가 바뀌면 머리 글자와 설명을 새로 붙여 페이드로 갈아든다.
   const swap = hereId ?? `${node.name}:${node.lineNumber}`;
-  return <section className="point-card" aria-label={phrase('point.card.label')} onMouseDown={keepFocus}>
+  return <section className="point-card" aria-label={phrase(node.nodeId ? 'rn.element' : 'point.card.label')} onMouseDown={keepFocus}>
     <div className="pc-body">
       <header className="pc-head">
         <div className="pc-id pc-swap" key={`id-${swap}`} title={pointTitle(node, say)}>
@@ -199,6 +199,8 @@ export function PointCard({ card, actions = NO_ACTIONS }: { card: PointCardData;
       <div className="pc-panel pc-detail">
         <div className="pc-detail-in pc-swap" key={`detail-${swap}`}>
           <SizeRow box={box} />
+          {node.nodeId && <dl className="rn-node-info">{(['text', 'accessibilityRole', 'accessibilityLabel', 'testId'] as const)
+            .filter(key => node[key]).map(key => <div key={key}><dt>{phrase(({text:'rn.text', accessibilityRole:'rn.accessibilityRole', accessibilityLabel:'rn.accessibilityLabel', testId:'rn.testId'} as const)[key])}</dt><dd>{node[key]}</dd></div>)}</dl>}
           {modifiers && modifiers.length > 0 && <ModifierRows modifiers={modifiers} />}
         </div>
       </div>

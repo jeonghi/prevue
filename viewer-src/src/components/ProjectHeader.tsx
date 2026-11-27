@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
-import { post } from '../runtime/api';
+import { fetchPlatforms, openPlatform, post, type PlatformSession, type PreviewPlatform } from '../runtime/api';
 import { flash } from '../runtime/capsule';
 import { useHost } from '../host';
 import { useMessages } from '../messages';
@@ -17,8 +17,26 @@ let closeDir = () => false;
 /** Esc 가 먼저 닫는 층 가운데 하나다. 열려 있었으면 true. */
 export const closeDirPop = () => closeDir();
 
-export function ProjectHeader({ header, tabs, app, iconUrl = '/app-icon.png', host, brand }: {
+function RuntimePicker({ current }: { current: PreviewPlatform }) {
+  const { phrase } = useMessages();
+  const [sessions,setSessions] = useState<PlatformSession[]>([]);
+  const names = {web:'RN Web',ios:'iOS',android:'Android'};
+  const update = () => { void fetchPlatforms().then(result => setSessions(result.platforms), () => setSessions([])); };
+  useEffect(update,[current]);
+  return <select className="rn-platform" value={current} aria-label={phrase('rn.platform')} title={phrase('rn.platform')}
+    onFocus={update} onChange={e=>openPlatform(e.target.value as PreviewPlatform)}>
+    {(['web','ios','android'] as const).map(platform=>{
+      const available=platform===current || sessions.some(s=>s.platform===platform && s.available);
+      return <option key={platform} value={platform} disabled={!available}>
+        {available ? names[platform] : phrase('rn.platformStopped',{name:names[platform]})}
+      </option>;
+    })}
+  </select>;
+}
+
+export function ProjectHeader({ header, tabs, runtime, app, iconUrl = '/app-icon.png', host, brand }: {
   header: ViewerState['header'] | null;
+  runtime?: ViewerState['runtime'];
   tabs: ViewerState['tabs'];
   app: AppInfo | null;
   iconUrl?: string;
@@ -79,7 +97,7 @@ export function ProjectHeader({ header, tabs, app, iconUrl = '/app-icon.png', ho
     header.module,
     // 소스 세트는 KMP 모듈의 파일일 때만 — 툴팁이 "Android 빌드로 그렸다"를 말한다.
     header.sourceSet && <span key="ss" title={phrase('header.sourceSet', { variant: header.variant })}>{header.sourceSet}</span>,
-    header.variant,
+    runtime ? <RuntimePicker key="platform" current={runtime.platform} /> : header.variant,
   ].filter(Boolean).flatMap((part, i) => [' · ', <Fragment key={i}>{part}</Fragment>]) : [];
 
   const body = <>

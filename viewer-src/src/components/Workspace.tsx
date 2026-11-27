@@ -1,7 +1,11 @@
 import { memo, useLayoutEffect, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
+import { post } from '../runtime/api';
+import { flash } from '../runtime/capsule';
+import { sendText } from '../workspace/input';
 import { useHost } from '../host';
 import { useMessages } from '../messages';
-import { findCard, type DeviceInsets, type Focus, type Size, type SystemUi, type ViewerState } from '../state';
+import { findCard, type DeviceInsets, type Focus, type RuntimeInfo, type Size, type SystemUi, type ViewerState } from '../state';
 import type { SceneDock } from '../runtime/resize-scene';
 import { loadingView, zoomView, type ZoomView } from '../workspace/view';
 import { CustomSizeSliders, DeviceMenu, DevicePosture } from './Dock';
@@ -145,7 +149,8 @@ export function WorkspaceHeader({ state, hosts, actions = NO_ACTIONS }: { state:
   }, [back.element, title.element]);
 
   const backBody = <>{BACK}<span id="backName">{tab ? tab.name : phrase('nav.board')}</span></>;
-  const titleBody = <><span className="ws-name" id="wsName">{f ? f.name || f.fn || f.previewId : ''}</span><span className="ws-fn" id="wsFn" hidden={!f?.name}>{f?.name ? f.fn : ''}</span></>;
+  const detail = f && [f.name && f.name !== f.fn ? f.fn : '', state?.runtime?.label].filter(Boolean).join(' · ');
+  const titleBody = <><span className="ws-name" id="wsName">{f ? f.name || f.fn || f.previewId : ''}</span><span className="ws-fn" id="wsFn" hidden={state?.runtime ? !detail : !f?.name}>{state?.runtime ? detail : f?.name ? f.fn : ''}</span></>;
   // 바깥 요소(#back)의 누름은 여기서 단다 — 마크업이 가진 버튼이라 안만 그리는 포털로는 onClick 을 달 수 없다.
   useLayoutEffect(() => {
     const b = back.element;
@@ -160,7 +165,33 @@ export function WorkspaceHeader({ state, hosts, actions = NO_ACTIONS }: { state:
   </>;
 }
 
-export function Workspace({ screen, systemUi = null, deviceInsets = null, size = null, hosts, actions = NO_ACTIONS, dock }: {
+function RuntimeInput({ runtime }: { runtime: RuntimeInfo }) {
+  const { phrase } = useMessages();
+  const [text, setText] = useState(''), [sending, setSending] = useState(false);
+  async function submit() {
+    if (!text || sending) return;
+    setSending(true);
+    try { await sendText(text); setText(''); }
+    catch (error) { flash(phrase('request.failed', {why:String(error)})); }
+    finally { setSending(false); }
+  }
+  async function reset() {
+    try {
+      const r = await post('/viewer/reset');
+      if (!r.ok) throw new Error((await r.json()).error?.message || `HTTP ${r.status}`);
+      setText('');
+    } catch (error) { flash(phrase('request.failed', {why:String(error)})); }
+  }
+  return <form className="rn-input" onSubmit={e => { e.preventDefault(); void submit(); }}>
+    {runtime.capabilities.interactiveInput && <><input type="text" aria-label={phrase('rn.input')} placeholder={phrase('rn.input')}
+      value={text} disabled={sending} onChange={e => setText(e.currentTarget.value)} />
+      <button type="submit" className="tb-btn" disabled={!text || sending}>{phrase('rn.send')}</button></>}
+    {runtime.capabilities.stateReset && <button className="tb-btn" type="button" onClick={reset} disabled={sending}>{phrase('rn.reset')}</button>}
+  </form>;
+}
+
+export function Workspace({ screen, runtime, interactive, systemUi = null, deviceInsets = null, size = null, hosts, actions = NO_ACTIONS, dock }: {
+  runtime?: RuntimeInfo; interactive?: boolean;
   screen: ViewerState['screen'] | null; systemUi?: SystemUi | null; deviceInsets?: DeviceInsets | null; size?: Size | null; hosts?: WorkspaceHosts; actions?: WorkspaceActions;
   dock?: SceneDock;
 }) {
@@ -168,7 +199,7 @@ export function Workspace({ screen, systemUi = null, deviceInsets = null, size =
   const [view, setView] = useState<HTMLElement | null>(null);
   const viewEl = hosts?.view ?? view;
   useLayoutEffect(() => { if (viewEl && screen !== null) viewEl.hidden = screen !== 'focus'; }, [screen, viewEl]);
-  if (hosts) return <>{dock && <><DeviceMenu dock={dock} host={hosts.menu} /><DevicePosture dock={dock} host={hosts.posture} /><CustomSizeSliders dock={dock} host={hosts.sliders} /></>}<WorkspaceLoading host={hosts.loading} /><InsetOverlay deviceInsets={deviceInsets} size={size} host={hosts.inset} /><InsetMarks deviceInsets={deviceInsets} size={size} host={hosts.insetMarks} /><SystemUiControl systemUi={systemUi} deviceInsets={deviceInsets} host={hosts.systemUi} actions={actions} /><ZoomControls host={hosts.zoom} actions={actions} /></>;
+  if (hosts) return <>{runtime && screen === 'focus' && interactive && createPortal(<RuntimeInput runtime={runtime} />, hosts.panel)}{dock && !runtime && <><DeviceMenu dock={dock} host={hosts.menu} /><DevicePosture dock={dock} host={hosts.posture} /><CustomSizeSliders dock={dock} host={hosts.sliders} /></>}<WorkspaceLoading host={hosts.loading} /><InsetOverlay deviceInsets={deviceInsets} size={size} host={hosts.inset} /><InsetMarks deviceInsets={deviceInsets} size={size} host={hosts.insetMarks} /><SystemUiControl systemUi={systemUi} deviceInsets={deviceInsets} host={hosts.systemUi} actions={actions} /><ZoomControls host={hosts.zoom} actions={actions} /></>;
   return <>
     <section id="focusView" ref={setView}><WorkspaceStage loading={<WorkspaceLoading />}
       inset={<InsetOverlay deviceInsets={deviceInsets} size={size} />} marks={<InsetMarks deviceInsets={deviceInsets} size={size} />} /></section>

@@ -4,7 +4,7 @@
 /** 데몬의 `/preview-files.json` 한 줄(계약 preview-files.json). */
 import type { CardAnswer } from './gallery/queue';
 
-export type PreviewFile = { path: string; rel: string; module: string; mtime: number; functions: string[]; shots?: CardAnswer | null };
+export type PreviewFile = { path: string; rel: string; module: string; mtime: number; revision?: number; functions: string[]; shots?: CardAnswer | null };
 /** 목록의 한 파일 — 파일명을 붙이고, 디렉터리는 처음 견줄 때 적어 둔다. */
 export type FileEntry = PreviewFile & { name: string; dir?: string };
 export type FileMatch = { score: number; name: Set<number>; fns: Map<string, Set<number>> };

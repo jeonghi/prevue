@@ -64,8 +64,8 @@ function w() {
 	if (!_ || _.file !== p || !e.st || e.st.screen !== "board") return;
 	let { fn: t } = _;
 	if (_ = null, !t) return;
-	let r = [...n().querySelectorAll(".group")].find((e) => e.dataset.fn === t), i = r && r.querySelector(".card");
-	i && (s({ cursor: Number(i.dataset.i) }), v = a.cursor, y = performance.now(), b(), E(r));
+	let r = [...n().querySelectorAll(".group")].find((e) => e.dataset.fn === t), i = r?.querySelector(".card") ?? [...n().querySelectorAll(".card")].find((e) => e.dataset.fn === t);
+	i && (s({ cursor: Number(i.dataset.i) }), v = a.cursor, y = performance.now(), b(), E(r ?? i));
 }
 var T = () => {};
 function E(e) {
