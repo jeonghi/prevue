@@ -14,6 +14,7 @@ import { metroAssets } from './assets.ts';
 import { projectMocks } from './mocks.ts';
 import { createHostInspector, type SourceIndex } from './inspector.ts';
 import { WebError, type WebRequest } from './bridge.ts';
+import { SavedFiles } from './saved-files.ts';
 
 export interface WebBundler {
   entry: string;
@@ -54,6 +55,8 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
   const treeId = id('tree.js');
   const sdkId = id('sdk.js');
   const inspector = createHostInspector();
+  const saves = new SavedFiles();
+  const sharedDirectories = new Set<string>();
   let revision = 0;
   const requestedAt = new WeakMap<IncomingMessage, number>();
   const diagnostics = new Map<string, (revision: number, message: string) => void>();
@@ -124,6 +127,13 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
     async transform(code, moduleId) {
       const file = moduleId.split('?')[0];
       if (!inside(workspace, file) || !/\.[cm]?[jt]sx?$/.test(file) || file.includes('/node_modules/') || inside(cacheDir, file)) return;
+      // Linux watches an individual file's inode. Watch the parent of imported
+      // workspace modules as well so replacing a file keeps it under observation.
+      const directory = path.dirname(file);
+      if (!inside(root, file) && !sharedDirectories.has(directory)) {
+        sharedDirectories.add(directory);
+        vite?.watcher.add(directory);
+      }
       let map;
       const plugins = [];
       if (/\brequire\s*\(/.test(code)) plugins.push(metroAssets);
@@ -143,13 +153,12 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
         const refresh = [
           'import { getRefreshReg as __prevueRegisterFor } from "/@react-refresh";',
           'if (import.meta.hot) {',
-          '  const register = __prevueRegisterFor(' + JSON.stringify(moduleId) + ');',
+          '  const register = __prevueRegisterFor(new URL(import.meta.url).pathname);',
           '  const providers = exports => {',
           '    for (const [name, preview] of Object.entries(exports ?? {})) {',
           '      if (typeof preview?.render === "function" && preview.provider) register(preview.provider, name + ".provider");',
           '    }',
           '  };',
-          '  import(/* @vite-ignore */ import.meta.url).then(providers);',
           '  import.meta.hot.accept(providers);',
           '}',
         ].join('\n');
@@ -161,9 +170,10 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
       }
       if (map) return { code, map };
     },
-    hotUpdate({ file, modules, timestamp }) {
+    async hotUpdate({ file, modules, timestamp }) {
       if (this.environment.name !== 'client' || !inside(workspace, file) || inside(artifacts, file) ||
           file.split('/').includes('node_modules') || !trackedSource.test(file)) return;
+      if (!await saves.changed(file)) return [];
       inspector.invalidate(normalizePath(path.relative(root, file)));
       revision++;
       const graph = this.environment.moduleGraph;
@@ -201,7 +211,12 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
         host: loopback, middlewareMode: true, cors: false,
         hmr: { server: http, host: loopback, clientPort: address.port, overlay: false },
         fs: { strict: true, allow: [workspace, cacheDir] },
-        watch: { ignored: [normalizePath(artifacts) + '/**'] },
+        watch: {
+          ignored: [normalizePath(artifacts) + '/**'],
+          // Coalesce a truncate/write and observe the next completed save even if
+          // it follows a compiler error inside chokidar's default change throttle.
+          awaitWriteFinish: { stabilityThreshold: 35, pollInterval: 10 },
+        },
       },
     });
     const server = vite;

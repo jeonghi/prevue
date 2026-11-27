@@ -1,5 +1,6 @@
 import React, { Component, Fragment, useLayoutEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import { getRefreshReg } from '/@react-refresh';
 import { Revision } from './revision.jsx';
 import { inspectDocument } from './tree.js';
 
@@ -131,11 +132,16 @@ function storyDefinition(module, exportName) {
 async function apply(request, reset) {
   if (reset || lastError || request.previewId !== current?.request.previewId) mount++;
   lastError = undefined;
+  // Vite's accept callbacks register the new provider families before React
+  // commits the revision marker. Preserve that ordering for the live tree.
+  await waitForRevision(request.revision);
   let module, providers;
   try {
+    // Import the exact HMR URL. Vite adds ?import to a dynamic relative URL,
+    // which would evaluate a second instance of this module and its providers.
     [module, providers] = await deadline(Promise.all([
-      import(/* @vite-ignore */ request.moduleUrl),
-      request.providerUrl ? import(/* @vite-ignore */ request.providerUrl) : undefined,
+      import(/* @vite-ignore */ new URL(request.moduleUrl, location.href).href),
+      request.providerUrl ? import(/* @vite-ignore */ new URL(request.providerUrl, location.href).href) : undefined,
     ]), 'Loading the preview module timed out.');
   } catch (error) {
     throw fault('WEB_BUNDLE_FAILED', error.message);
@@ -144,8 +150,10 @@ async function apply(request, reset) {
   if (!definition || typeof definition.render !== 'function') {
     throw fault('INVALID_PREVIEW', 'Export ' + request.exportName + ' has no render function.');
   }
+  if (definition.provider) {
+    getRefreshReg(new URL(request.moduleUrl, location.href).pathname)(definition.provider, request.exportName + '.provider');
+  }
   if (providers && !providers.default) throw fault('INVALID_PREVIEW_PROVIDER', 'prevue.providers.tsx must have a default export.');
-  await waitForRevision(request.revision);
   current = { request, definition, GlobalProvider: providers?.default ?? Fragment };
   return commit();
 }
