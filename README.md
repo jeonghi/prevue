@@ -124,7 +124,7 @@ With Prevue, every worktree gets its own lightweight daemon.
 
 ## Get started
 
-### Requirements
+### Compose requirements
 
 - **macOS** with the Command Line Tools (`python3`) — if they're missing, the agent opens the installer for you.
 - **Java** — with Android Studio Ladybug (2024.2) or newer installed, there's nothing to set up, even if your project uses JDK 17.
@@ -136,15 +136,19 @@ With Prevue, every worktree gets its own lightweight daemon.
 
 ### Install
 
+Run these commands from a checkout of the fork at the revision you want to install. Each marketplace reads its plugin from that checkout.
+
 ```sh
 # Claude Code
-claude plugin marketplace add https://github.com/kakao/prevue.git
+claude plugin marketplace add "$PWD"
 claude plugin install prevue@prevue
 
 # Codex
-codex plugin marketplace add https://github.com/kakao/prevue.git
+codex plugin marketplace add "$PWD"
 codex plugin add prevue@prevue
 ```
+
+React Native uses Node 22.12 or later. Install the runtime in the plugin directory and add Playwright’s Chromium for web previews. [React Native setup](docs/react-native-cli.md#installed-plugin)
 
 Then tell your agent the file name. Calling the skill directly is more reliable: `/prevue` in Claude Code, `$prevue:prevue` in Codex.
 

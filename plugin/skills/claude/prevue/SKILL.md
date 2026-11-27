@@ -10,7 +10,7 @@ Renders `@Preview` headlessly, without Android Studio, and shows it in the brows
 The point is for **the person and the agent to fix the UI while looking at the same preview**.
 Save → a new image in about a second with no build, so you can run **the loop of looking and fixing yourself** several times before showing it to the person.
 
-The executable is `${CLAUDE_PLUGIN_ROOT}/bin/prevue`.
+The executable is `${CLAUDE_PLUGIN_ROOT}/bin/prevue`. For shell commands below set `PREVUE="${CLAUDE_PLUGIN_ROOT}"`.
 
 **The CLI explains its commands and response fields** — `prevue --help` gives the command list and exit codes, `prevue <command> --help` gives that command's arguments and response.
 It answers right away without the daemon, so when you don't know something, run it first. This skill only holds the order of steps and the rules for asking the person.
@@ -20,7 +20,9 @@ refuses because it can't tell which repository you mean, call a command that tak
 
 ## React Native preview files
 
-For an RN TSX/JSX component, work inside its package and run `$PREVUE/bin/prevue rn --help`. The commands later in this document cover Compose. Use the RN namespace for this workflow.
+Use Node 22.12 or later. On first RN use in a plugin installation, set up its pinned runtime with `(cd "$PREVUE/rn-runtime" && npm ci)`. For browser previews, install its Chromium with `"$PREVUE/rn-runtime/node_modules/.bin/playwright" install chromium`. Each new plugin cache can have its own runtime installation.
+
+Run `"$PREVUE/bin/prevue" rn --help` from the RN package. The app supplies its React, React DOM and React Native Web dependencies for web rendering. The bundled development SDK is in `$PREVUE/rn-runtime/packages/react-native`. For Metro and project type checking, add a project-owned copy as a local dev dependency when setting up the app. The commands later in this document cover Compose.
 
 1. Run `prevue rn doctor` and `prevue rn previews`. A trusted local project declares previews with `@prevue/react-native` and a fixture or provider. Dependency setup is explicit.
 2. Run `prevue rn show <file> --platform web --lang <code>`. Read the returned PNGs and tree files. Give the developer the private local viewer URL. The board displays the same captures as the CLI.
