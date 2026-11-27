@@ -1,0 +1,8 @@
+.prevue/
+ios/Pods/
+ios/PrevueNativeFixture.xcworkspace/
+ios/.xcode.env.local
+ios/**/xcuserdata/
+android/local.properties
+.cxx/
+.kotlin/
