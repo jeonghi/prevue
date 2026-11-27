@@ -1,0 +1,12 @@
+{
+  "ios": {
+    "appId": "com.prevue.nativefixture",
+    "entry": "index.preview",
+    "display": 1
+  },
+  "android": {
+    "appId": "com.prevue.nativefixture",
+    "activity": ".MainActivity",
+    "entry": "index.preview"
+  }
+}
