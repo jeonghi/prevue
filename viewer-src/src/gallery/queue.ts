@@ -1,6 +1,6 @@
 import type { Message } from '../state';
 
-export type CardImage = { url: string; w: number; h: number; at?: number };
+export type CardImage = { url: string; w: number; h: number; at?: number; stale?: boolean };
 export type FrontSheet = { i: number; name: string; variant: string | null; image: CardImage };
 export type CardAnswer = { sheets: number; front: FrontSheet[]; failure: Message | null };
 export type CardView =

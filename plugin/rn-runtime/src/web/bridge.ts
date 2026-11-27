@@ -1,4 +1,4 @@
-import type { RenderError, UITree } from '../protocol.ts';
+import type { RenderError, UINode, UITree } from '../protocol.ts';
 
 export interface WebRequest {
   previewId: string;
@@ -18,10 +18,13 @@ export interface Commit {
 
 type Reply = { commit: Commit; error?: never } | { commit?: never; error: RenderError };
 
+export type BrowserNode = Omit<UINode, 'children'> & { sourceToken?: string; children: BrowserNode[] };
+export type BrowserTree = Omit<UITree, 'nodes'> & { nodes: BrowserNode[] };
+
 export interface BrowserBridge {
   apply(request: WebRequest, reset: boolean): Promise<Reply>;
   settle(): Promise<Reply>;
-  tree(): UITree;
+  tree(sourceAttribute?: string): BrowserTree;
 }
 
 declare global {

@@ -2,6 +2,8 @@
   <img src="assets/icon.png" width="40" height="40" alt="" align="absmiddle">&nbsp;Prevue
 </h1>
 
+This community fork adds React Native previews. Run the [RN demo](docs/react-native-cli.md) or check the [tested platforms](docs/react-native-compatibility.md).
+
 <p align="center"><b>Compose Previews, without Android Studio.</b></p>
 
 <p align="center">Save, and it redraws in the browser in a second.<br>Your agent sees the same screen.</p>
