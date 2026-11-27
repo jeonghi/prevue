@@ -11,6 +11,7 @@ import { createServer, normalizePath, searchForWorkspaceRoot, transformWithEsbui
 import tsconfigPaths from 'vite-tsconfig-paths';
 import type { ProjectContext, RenderRequest } from '../protocol.ts';
 import { metroAssets } from './assets.ts';
+import { projectMocks } from './mocks.ts';
 import { WebError, type WebRequest } from './bridge.ts';
 
 export interface WebBundler {
@@ -23,7 +24,7 @@ export interface WebBundler {
 }
 
 const extensions = ['.web.tsx', '.web.ts', '.web.jsx', '.web.js', '.web.mjs', '.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'];
-const previewExtension = /\.preview\.[jt]sx$/;
+const previewExtension = /\.(?:preview|stories)\.[jt]sx$/;
 const trackedSource = /\.(?:[cm]?[jt]sx?|json|css|s[ac]ss|less|avif|gif|jpe?g|png|svg|webp|otf|ttf|woff2?|mp[34]|webm)$/i;
 const loopback = '127.0.0.1';
 
@@ -184,7 +185,7 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
         runtime, tsconfigPaths({ loose: true }),
         react({ exclude: [previewExtension, clientId, normalizePath(cacheDir) + '/**'] }),
       ],
-      resolve: { alias: [{ find: /^react-native$/, replacement: 'react-native-web' }], extensions, dedupe: ['react', 'react-dom', 'react-native-web'] },
+      resolve: { alias: [...await projectMocks(root), { find: /^react-native$/, replacement: 'react-native-web' }], extensions, dedupe: ['react', 'react-dom', 'react-native-web'] },
       define: { __DEV__: true },
       optimizeDeps: { entries: [], include: ['react-dom/client', 'react-native-web'], exclude: ['@prevue/react-native'] },
       server: {
@@ -213,7 +214,7 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
         const provider = path.join(root, 'prevue.providers.tsx');
         return {
           previewId: preview.id, generation, revision: sourceRevision,
-          exportName: preview.source.exportName, moduleUrl: projectUrl(source),
+          format: preview.format, exportName: preview.source.exportName, moduleUrl: projectUrl(source),
           providerUrl: existsSync(provider) ? projectUrl(provider) : undefined,
         };
       },

@@ -3,6 +3,7 @@ import type { RenderError, UITree } from '../protocol.ts';
 export interface WebRequest {
   previewId: string;
   exportName: string;
+  format?: 'csf';
   moduleUrl: string;
   providerUrl?: string;
   generation: number;

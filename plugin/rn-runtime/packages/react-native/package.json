@@ -9,7 +9,16 @@
     ".": {
       "types": "./index.d.ts",
       "default": "./index.js"
+    },
+    "./metro-web": {
+      "types": "./metro-web.d.ts",
+      "default": "./metro-web.js"
     }
   },
-  "files": ["index.js", "index.d.ts"]
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "metro-web.js",
+    "metro-web.d.ts"
+  ]
 }

@@ -72,6 +72,11 @@ async function main() {
     const expo=!!(manifest.dependencies?.expo||manifest.devDependencies?.expo);
     const adapter=platform==='web' ? expo?'expo':'web' : 'native';
     const missing=platform==='web' ? ['react','react-dom','react-native-web'].filter(name=>{try{req.resolve(name);return false;}catch{return true;}}) : [];
+    if (adapter==='expo') {
+      const config=await readFile(path.join(root,'prevue.expo.json'),'utf8').then(JSON.parse,()=>null);
+      const file=typeof config?.entry==='string' ? path.resolve(root,config.entry) : '';
+      if (!file.startsWith(root+path.sep) || !await stat(file).then(value=>value.isFile(),()=>false)) missing.push('prevue.expo.json development entry');
+    }
     const adapterPresent=await stat(fileURLToPath(new URL('./'+adapter+'/index.ts',import.meta.url))).then(s=>s.isFile(),()=>false);
     const out={ok:!missing.length&&adapterPresent,root,platform,adapter,adapterPresent,missing,daemon:await isAlive(await loadInstance(loc.record),loc.key),node:process.version};
     console.log(JSON.stringify(out)); if(!out.ok) process.exitCode=3;return;
