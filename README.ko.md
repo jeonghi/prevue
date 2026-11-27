@@ -2,6 +2,8 @@
   <img src="assets/icon.png" width="40" height="40" alt="" align="absmiddle">&nbsp;Prevue
 </h1>
 
+이 커뮤니티 포크는 React Native 프리뷰를 추가합니다. [실행 방법](docs/react-native-cli.md)과 [플랫폼별 검증 결과](docs/react-native-compatibility.md)를 확인할 수 있습니다.
+
 <p align="center"><b>Android Studio 없이 보는 Compose Preview.</b></p>
 
 <p align="center">저장하면 1초, 브라우저에서 다시 그려집니다.<br>에이전트도 같은 화면을 봅니다.</p>

@@ -1,0 +1,34 @@
+name: React Native preview
+on:
+  pull_request:
+    paths:
+      - 'plugin/rn-runtime/**'
+      - 'plugin/bin/prevue*'
+      - 'viewer-src/**'
+      - 'plugin/viewer/**'
+      - 'fixtures/react-native-*/**'
+      - 'tests/react-native/**'
+      - '.github/workflows/rn-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix plugin/rn-runtime
+      - run: npm ci --prefix fixtures/react-native-web
+      - name: Install the Expo test project when present
+        run: if test -f fixtures/react-native-expo/package-lock.json; then npm ci --prefix fixtures/react-native-expo; fi
+      - run: npx playwright install --with-deps chromium
+        working-directory: plugin/rn-runtime
+      - run: npm run typecheck --prefix plugin/rn-runtime
+      - run: npm run typecheck --prefix fixtures/react-native-web
+      - run: npm test --prefix plugin/rn-runtime
+      - run: node --test tests/react-native/viewer-contract.test.mjs tests/react-native/*.e2e.mjs
+      - run: sh tools/gen-agents.sh --check

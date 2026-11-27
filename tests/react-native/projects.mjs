@@ -15,7 +15,7 @@ export const runtimeRequire = createRequire(path.join(repo,'plugin/rn-runtime/pa
 export const {chromium} = runtimeRequire('playwright');
 export async function projects(count) {
   const temp = await mkdtemp(path.join(tmpdir(),'prevue-e2e-'));
-  const first = path.join(temp,'a');
+  const first = path.join(temp,'react-native-web');
   await cp(fixture,first,{recursive:true,filter:f=>!['node_modules','.git','.prevue'].includes(path.basename(f))});
   const git = (...args)=>run('git',['-C',first,...args]);
   await writeFile(path.join(first,'.gitignore'),'node_modules/\n');
