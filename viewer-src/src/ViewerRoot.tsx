@@ -71,7 +71,7 @@ export function ViewerRoot({ state, draw = 0, statusState = state, connection = 
     <PreviewBoard board={state?.board ?? null} screen={screen} hosts={hosts.board} actions={board} />
     <QuickOpen state={state} draw={draw} connection={connection} hosts={hosts.quickOpen} />
     <VacantTab screen={screen} vacant={state?.vacant ?? null} host={hosts.vacant} />
-    <Workspace screen={state?.screen ?? null} systemUi={state?.focus?.systemUi ?? null} deviceInsets={state?.focus?.deviceInsets ?? null} size={state?.focus?.size ?? null} hosts={hosts.workspace} actions={workspace} dock={dock} />
+    <Workspace screen={state?.screen ?? null} runtime={state?.runtime} interactive={state?.focus?.interactive} systemUi={state?.focus?.systemUi ?? null} deviceInsets={state?.focus?.deviceInsets ?? null} size={state?.focus?.size ?? null} hosts={hosts.workspace} actions={workspace} dock={dock} />
     <WorkspaceHeader state={state} hosts={hosts.workspaceHeader} actions={workspace} />
     <PointOverlay actions={point} />
     <ChoicePopover choice={state?.choice ?? null} repo={state?.header?.repo} host={hosts.chooser} actions={point} />
