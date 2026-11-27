@@ -1,9 +1,9 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { mkdir, readFile, realpath, stat, unlink } from 'node:fs/promises';
+import { mkdir, readFile, realpath, rm, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { atomicWrite, loadInstance, location, portCandidate, type Instance } from './instance.ts';
+import { atomicWrite, loadInstance, location, ownOrJoin, portCandidate, type Instance } from './instance.ts';
 import { errorInfo, PreviewFailure } from './errors.ts';
 import { ProjectSession } from './session.ts';
 import type { Platform, PreviewRenderer, ViewerHost, ViewerRoute } from './protocol.ts';
@@ -49,9 +49,36 @@ async function start() {
   const platform = name as Platform;
   const loc = location(root,platform);
   await mkdir(loc.dir,{recursive:true,mode:0o700});
+  const owner = await ownOrJoin(loc);
+  if ('existing' in owner) {
+    if (process.connected) process.send?.({existing: true, record: owner.existing}, () => { if (process.connected) process.disconnect(); });
+    return;
+  }
+  try {
+    await serve(root, platform, device, loc, owner.release);
+  } catch (error) {
+    owner.release();
+    throw error;
+  }
+}
+async function serve(root: string, platform: Platform, device: string | undefined, loc: ReturnType<typeof location>, release: () => void) {
+  const captures = path.join(loc.dir, 'captures');
+  const interrupted = await readFile(loc.pending, 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+    return '';
+  });
+  // A crash before publication can leave a browser cache or native build in
+  // progress. Previously published image paths remain valid after a restart.
+  if (/^[a-f0-9]{16}$/.test(interrupted) && !await loadInstance(loc.record)) {
+    await rm(path.join(captures, interrupted), { recursive: true, force: true });
+  }
+  await rm(loc.pending, { force: true });
+  await rm(loc.record, { force: true });
   const token = randomBytes(32).toString('hex');
   const cookie = 'prevue_rn_' + loc.key;
-  const artifacts = path.join(loc.dir, 'captures', randomBytes(8).toString('hex'));
+  const run = randomBytes(8).toString('hex');
+  await atomicWrite(loc.pending, run);
+  const artifacts = path.join(captures, run);
   await mkdir(artifacts,{recursive:true,mode:0o700});
   const artRoot = await realpath(artifacts);
   let session: ProjectSession | undefined, handleViewer: ViewerRoute | undefined, record: Instance | undefined;
@@ -65,17 +92,23 @@ async function start() {
       return '/artifacts/' + id;
     },
   };
-  let shutting = false;
+  let closing: Promise<void> | undefined;
+  function close() {
+    closing ??= (async () => {
+      if (server.listening) {
+        server.close();
+        server.closeAllConnections();
+      }
+      try { await session?.dispose(); }
+      finally {
+        if ((await loadInstance(loc.record))?.token === token) await unlink(loc.record).catch(() => {});
+      }
+    })();
+    return closing;
+  }
   async function stop() {
-    if (shutting) return;
-    shutting = true;
-    server.close();
-    server.closeAllConnections();
-    try { await session?.dispose(); }
-    finally {
-      if ((await loadInstance(loc.record))?.token === token) await unlink(loc.record).catch(()=>{});
-      process.exit(0);
-    }
+    try { await close(); }
+    finally { release(); process.exit(0); }
   }
   async function route(req: IncomingMessage, res: ServerResponse) {
     const address = server.address();
@@ -128,33 +161,41 @@ async function start() {
     const exitCode = err instanceof PreviewFailure ? err.exitCode : 1;
     json(res,exitCode === 2 ? 400 : 422,{ok:false,error:errorInfo(err),exitCode});
   });});
-  for (let i = 0; i < 32; i++) {
-    const port = portCandidate(loc.key,i);
-    try {
-      await new Promise<void>((resolve,reject)=>{
-        const fail = (err:Error)=>{server.off('listening',on);reject(err);};
-        const on = ()=>{server.off('error',fail);resolve();};
-        server.once('error',fail).once('listening',on).listen(port,'127.0.0.1');
-      });
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err;
-      const peer = await fetch('http://127.0.0.1:'+port+'/identity',{signal:AbortSignal.timeout(600)}).then(r=>r.json()).catch(()=>null);
-      if (peer?.key === loc.key) { process.send?.({existing:true}); process.disconnect?.(); return; }
-      continue;
+  try {
+    for (let i = 0; i < 32; i++) {
+      const port = portCandidate(loc.key, i);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const fail = (error: Error) => { server.off('listening', on); reject(error); };
+          const on = () => { server.off('error', fail); resolve(); };
+          server.once('error', fail).once('listening', on).listen(port, '127.0.0.1');
+        });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') continue;
+        throw error;
+      }
+      const renderer = await rendererFor(platform, root);
+      session = new ProjectSession(root, platform, renderer);
+      process.once('SIGTERM', () => void stop());
+      process.once('SIGINT', () => void stop());
+      const viewerEntry = new URL('./viewer/index.ts', import.meta.url);
+      if (await stat(fileURLToPath(viewerEntry)).then(s => s.isFile(), () => false)) handleViewer = (await import(viewerEntry.href)).handleViewer;
+      await session.init(artRoot, device);
+      record = {root, platform, device, key: loc.key, pid: process.pid, token, url: 'http://127.0.0.1:' + port, ownerLock: 'sqlite'};
+      await atomicWrite(loc.record, JSON.stringify(record));
+      await rm(loc.pending, { force: true });
+      if (process.connected) process.send?.({ready: true, record}, () => { if (process.connected) process.disconnect(); });
+      return;
     }
-    const renderer = await rendererFor(platform,root);
-    session = new ProjectSession(root,platform,renderer);
-    process.once('SIGTERM',()=>void stop()); process.once('SIGINT',()=>void stop());
-    const viewerEntry = new URL('./viewer/index.ts',import.meta.url);
-    if (await stat(fileURLToPath(viewerEntry)).then(s=>s.isFile(),()=>false)) handleViewer = (await import(viewerEntry.href)).handleViewer;
-    await session.init(artRoot,device);
-    record = {root,platform,device,key:loc.key,pid:process.pid,token,url:'http://127.0.0.1:'+port};
-    await atomicWrite(loc.record, JSON.stringify(record));
-    process.send?.({ready:true});
-    if (process.connected) process.disconnect();
-    return;
+    throw new PreviewFailure('PORT_UNAVAILABLE', 'No free local preview port', 3);
+  } catch (error) {
+    try { await close(); }
+    finally {
+      await rm(artRoot, { recursive: true, force: true });
+      await rm(loc.pending, { force: true });
+    }
+    throw error;
   }
-  throw new PreviewFailure('PORT_UNAVAILABLE','No free local preview port',3);
 }
 start().catch(err=>{
   console.error(err);

@@ -18,10 +18,15 @@ export function createPreviewHost({ registry, provider = Fragment, revision, end
     state = { error: null };
     static getDerivedStateFromError(error) { return { error: String(error) }; }
     componentDidCatch(error) { void acknowledge(this.props.command, String(error)).catch(() => {}); }
+    componentDidUpdate(previous) {
+      if (this.state.error && previous.command.id !== this.props.command.id) {
+        void acknowledge(this.props.command, this.state.error).catch(() => {});
+      }
+    }
     render() { return this.state.error ? createElement(Text, { accessibilityRole: 'alert' }, this.state.error) : this.props.children; }
   }
 
-  function CommittedPreview({ command, reportRef }) {
+  function CommittedPreview({ command, argsRef }) {
     const nativeView = useRef(null);
     useLayoutEffect(() => {
       let mounted = true;
@@ -37,7 +42,7 @@ export function createPreviewHost({ registry, provider = Fragment, revision, end
     if (command.action !== 'close') {
       const definition = registry[command.previewId]?.();
       if (!definition || typeof definition.render !== 'function') throw new Error('Unknown native preview ' + command.previewId);
-      const props = { ...definition.props, ...reportRef.current };
+      const props = { ...definition.props, ...argsRef.current };
       child = createElement(provider, null, createElement(definition.provider ?? Fragment, null, createElement(definition.render, props)));
     }
     return createElement(View, { ref: nativeView, collapsable: false, style: { flex: 1 } }, child);
@@ -77,6 +82,6 @@ export function createPreviewHost({ registry, provider = Fragment, revision, end
     }, []);
     if (!state) return createElement(View, { style: { flex: 1 } }, createElement(Text, null, 'Waiting for Prevue'));
     return createElement(Boundary, { key: state.key, command: state.command },
-      createElement(CommittedPreview, { command: state.command, reportRef: args }));
+      createElement(CommittedPreview, { command: state.command, argsRef: args }));
   };
 }

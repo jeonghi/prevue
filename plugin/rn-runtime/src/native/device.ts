@@ -34,6 +34,27 @@ export function pngSize(png: Buffer) {
   return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
 }
 type Size = { width: number; height: number };
+type EditingField = {
+  AXUniqueId?: string; AXLabel?: string; AXValue?: string; AXPlaceholderValue?: string;
+  type?: string; traits?: string[]; frame?: UINode['bounds'];
+};
+export function iosInputValue(data: unknown, input: string, previous?: { key: string; value: string }) {
+  const rows: EditingField[] = Array.isArray(data) ? data : [];
+  const focused = rows.filter(row => row.traits?.includes('TextEntry') && row.traits.includes('IsEditing'));
+  const field = focused[0], frame = field?.frame;
+  if (focused.length !== 1 || !frame || ![frame.x, frame.y, frame.width, frame.height].every(Number.isFinite) ||
+      field.type?.toLowerCase().includes('secure') || field.traits?.some(trait => trait.toLowerCase().includes('secure'))) {
+    throw new PreviewFailure('UNSUPPORTED_INPUT', 'Focus one accessible, non-secure iOS text field before typing.');
+  }
+  const key = field.AXUniqueId || JSON.stringify([field.AXLabel, frame]);
+  const current = field.AXValue ?? '';
+  // UIKit can surface an empty field's placeholder as its AX value; idb versions without
+  // AXPlaceholderValue report the placeholder as the accessible label on these native fields.
+  const placeholder = field.AXPlaceholderValue ?? field.AXLabel;
+  const prefix = current === placeholder && !(previous?.key === key && previous.value === current) ? '' : current;
+  return { key, value: prefix + input, x: Math.round(frame.x + frame.width / 2), y: Math.round(frame.y + frame.height / 2) };
+}
+
 export function iosTree(data: unknown, image: Size, points: Screen): UITree {
   let count = 0;
   const sx = image.width / points.width, sy = image.height / points.height;
@@ -100,8 +121,10 @@ export async function openDevice(platform: 'ios' | 'android', serial: string, co
     installed = stamp;
   }
   const forwards: number[] = [];
+  let lastInput: { key: string; value: string } | undefined;
   return {
     input, installed,
+    clearInputHistory() { lastInput = undefined; },
     async launch(metro: number, bridge: number) {
       if (platform === 'ios') {
         await run('xcrun', ['simctl', 'launch', '--terminate-running-process', serial, config.appId],
@@ -139,7 +162,12 @@ export async function openDevice(platform: 'ios' | 'android', serial: string, co
     async dispatch(action: Interaction, image: Size, screen: Screen) {
       if (!input) throw new PreviewFailure('UNSUPPORTED_INPUT', 'Install idb and idb_companion to use iOS input.');
       if (action.type === 'text') {
-        if (platform === 'ios') { await idb('text', action.text); return; }
+        if (platform === 'ios') {
+          const field = iosInputValue(JSON.parse(String(await idb('describe-all', '--json'))), action.text, lastInput);
+          await idb('set-value', String(field.x), String(field.y), '--value=' + field.value);
+          lastInput = field;
+          return;
+        }
         if (!/^[\x20-\x7E]*$/.test(action.text)) throw new PreviewFailure('UNSUPPORTED_INPUT', 'Android adb text input accepts printable ASCII.');
         // adb shell joins arguments on the device. Quote input for that shell, including literal percent sequences.
         for (const part of action.text.match(/%|[^%]+/g) ?? []) {
