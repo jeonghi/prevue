@@ -102,10 +102,12 @@ export interface Snapshot {
   tabs: string[];
   activeFile: string | null;
   focusId: string | null;
+  boardFocusId?: string;
   interactive: boolean;
   busy: boolean;
   error: RenderError | null;
   selection: UINode | null;
+  selectionPreviewId?: string;
 }
 export interface ViewerHost {
   snapshot(): Snapshot;
