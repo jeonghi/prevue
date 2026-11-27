@@ -19,6 +19,7 @@ type ContractBoard = NonNullable<ContractState['board']>;
 type ContractCard = ContractBoard['groups'][number]['cards'][number];
 export type RuntimeInfo = {
   framework: 'react-native';
+  rebuildRequired?: boolean;
   platform: 'web' | 'ios' | 'android';
   label: string;
   generation: number;

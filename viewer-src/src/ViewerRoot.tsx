@@ -60,13 +60,13 @@ export function ViewerRoot({ state, draw = 0, statusState = state, connection = 
   const screen = gallery ? 'gallery' : state?.screen ?? null;
   if (!hosts) return null;
   return <>
-    <ProjectHeader header={state?.header ?? null} tabs={state?.tabs ?? []} app={app} host={hosts.app} brand={hosts.brand} />
+    <ProjectHeader runtime={state?.runtime} header={state?.header ?? null} tabs={state?.tabs ?? []} app={app} host={hosts.app} brand={hosts.brand} />
     <StatusPill state={statusState} connection={connection} host={hosts.status} bar={hosts.bar} />
     <HelpButton host={hosts.helpButton} />
     <FileRail tabs={state?.tabs ?? null} screen={state?.screen ?? null} gallery={gallery} hosts={hosts.rail} />
     <GalleryEntry on={gallery} count={ready ? files?.length ?? null : null} host={hosts.railAll} />
     <StaleBanner rows={state?.stale ?? null} host={hosts.stale} />
-    <BuildNotice pending={!!state?.buildPending} host={hosts.buildNotice} />
+    <BuildNotice native={state?.runtime?.rebuildRequired} pending={!!state?.buildPending} host={hosts.buildNotice} />
     <Gallery shown={gallery} state={state} draw={draw} host={hosts.gallery} />
     <PreviewBoard board={state?.board ?? null} screen={screen} hosts={hosts.board} actions={board} />
     <QuickOpen state={state} draw={draw} connection={connection} hosts={hosts.quickOpen} />

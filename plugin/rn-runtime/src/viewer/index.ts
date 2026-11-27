@@ -6,6 +6,15 @@ import { galleryCard, previewFiles, projectFiles } from './files.ts';
 import { events, stream } from './live.ts';
 import { platformLabel, platformPreviews, viewerState } from './state.ts';
 
+import { isAlive, loadInstance, location } from '../instance.ts';
+import type { Platform } from '../protocol.ts';
+
+const platforms: Platform[] = ['web', 'ios', 'android'];
+async function liveSibling(root: string, target: Platform) {
+  const loc = location(root,target);
+  const record = await loadInstance(loc.record);
+  return record?.root === root && record.platform === target && await isAlive(record,loc.key) ? record : null;
+}
 type Args = Record<string, unknown>;
 function json(res: ServerResponse, value: unknown, status = 200) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store'}).end(JSON.stringify(value));
@@ -85,6 +94,22 @@ export const handleViewer: ViewerRoute = async (req, res, url, host) => {
       case '/app.json': {
         const version = await readFile(new URL('../../../VERSION', import.meta.url), 'utf8');
         json(res, {name:basename(state.projectRoot), icon:false, prevue:version.trim(), reveal:false});
+        break;
+      }
+      case '/rn/platforms': {
+        const available = await Promise.all(platforms.map(async platform => ({
+          platform, available: platform === state.platform || !!await liveSibling(state.projectRoot,platform),
+        })));
+        json(res, {platforms: available});
+        break;
+      }
+      case '/rn/platform': {
+        const target = platforms.find(platform => platform === url.searchParams.get('target'));
+        const peer = target && await liveSibling(state.projectRoot,target);
+        if (!peer) { failure(res,409,'RUNTIME_UNAVAILABLE','Start this project on the selected platform with prevue rn show'); break; }
+        const query = new URLSearchParams({session:peer.token});
+        if (url.searchParams.has('lang')) query.set('lang',url.searchParams.get('lang')!);
+        res.writeHead(303, { Location:peer.url+'/?'+query, 'Cache-Control':'no-store' }).end();
         break;
       }
       case '/gallery/card': {
