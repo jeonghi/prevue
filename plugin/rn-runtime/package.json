@@ -3,8 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.12.0" },
-  "workspaces": ["packages/react-native"],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "packages/react-native"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts"
@@ -17,7 +21,8 @@
     "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vite": "6.4.6",
-    "vite-tsconfig-paths": "5.1.4"
+    "vite-tsconfig-paths": "5.1.4",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@types/babel__core": "7.20.5",
