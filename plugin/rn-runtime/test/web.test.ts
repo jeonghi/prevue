@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { EventEmitter, once } from 'node:events';
-import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -103,6 +103,7 @@ test('real RN Web commits, interaction, shared module refresh, failed generation
   const updated = all(JSON.parse(await readFile(second.treePath!, 'utf8')).nodes);
   assert.ok(updated.some(n => n.text === 'global-counter-dark-second'));
   assert.ok(updated.some(n => n.text === 'Count 1'), 'Fast Refresh retains component state');
+  assert.ok(updated.some(n => n.text === 'Typed hello'), 'the same provider preserves TextInput state');
   assert.notDeepEqual(await readFile(second.imagePath!), await readFile(live.imagePath!));
 
   await edit(component, 'export function Counter( {');
@@ -116,6 +117,18 @@ test('real RN Web commits, interaction, shared module refresh, failed generation
   assert.ok(all((await session.inspect()).nodes).some(n => n.text === 'global-counter-dark-recovered'));
   await session.reset();
   assert.ok(all((await session.inspect()).nodes).some(n => n.text === 'Count 0'));
+  const staged = component + '.tmp';
+  await writeFile(staged, source('renamed', '#aaffbb'));
+  const replaced = once(changed, component, { signal: AbortSignal.timeout(10000) });
+  await rename(staged, component);
+  await replaced;
+  const atomic = await session.update({ preview, generation: 5 });
+  assert.equal(atomic.status, 'ready', JSON.stringify(atomic.error));
+  assert.ok(all((await session.inspect()).nodes).some(n => n.text === 'global-counter-dark-renamed'));
+  await edit(component, source('after-rename', '#abcabc'));
+  const subsequent = await session.update({ preview, generation: 6 });
+  assert.equal(subsequent.status, 'ready', JSON.stringify(subsequent.error));
+  assert.ok(all((await session.inspect()).nodes).some(n => n.text === 'global-counter-dark-after-rename'));
   const extra = path.join(root, 'New.preview.jsx');
   await edit(extra, 'export {}');
   const deleted = once(changed, extra, { signal: AbortSignal.timeout(10000) });
