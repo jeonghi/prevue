@@ -6,6 +6,7 @@ import { SaxesParser } from 'saxes';
 import { PreviewFailure } from '../errors.ts';
 import type { Interaction, UINode, UITree } from '../protocol.ts';
 import type { Screen } from './bridge.ts';
+import { startAndroidHierarchyDump } from './android-hierarchy.ts';
 
 const exec = promisify(execFile);
 async function run(tool: string, args: string[], env = process.env): Promise<Buffer> {
@@ -121,6 +122,8 @@ export async function openDevice(platform: 'ios' | 'android', serial: string, co
     installed = stamp;
   }
   const forwards: number[] = [];
+  const pendingDumps = new Set<Promise<void>>();
+  let fileDumpOnly = false;
   let lastInput: { key: string; value: string } | undefined;
   return {
     input, installed,
@@ -153,10 +156,19 @@ export async function openDevice(platform: 'ios' | 'android', serial: string, co
     },
     async inspect(image: Size, screen: Screen): Promise<UITree> {
       if (platform === 'ios') return iosTree(JSON.parse(String(await idb('describe-all', '--json', '--nested'))), image, screen);
+      if (!fileDumpOnly) {
+        const dump = startAndroidHierarchyDump(serial);
+        pendingDumps.add(dump.closed);
+        void dump.closed.then(() => pendingDumps.delete(dump.closed));
+        const xml = await dump.xml;
+        if (xml !== null) return androidTree(xml, image);
+      }
       const temporary = '/data/local/tmp/prevue-' + randomUUID() + '.xml';
       try {
         await adb('shell', 'uiautomator', 'dump', temporary);
-        return androidTree(String(await adb('exec-out', 'cat', temporary)), image);
+        const tree = androidTree(String(await adb('exec-out', 'cat', temporary)), image);
+        fileDumpOnly = true;
+        return tree;
       } finally { await adb('shell', 'rm', '-f', temporary).catch(() => {}); }
     },
     async dispatch(action: Interaction, image: Size, screen: Screen) {
@@ -193,6 +205,7 @@ export async function openDevice(platform: 'ios' | 'android', serial: string, co
       } else throw new PreviewFailure('UNSUPPORTED_INPUT', 'iOS idb supports tap and scroll gestures; split press/drag/release is unavailable.');
     },
     async close() {
+      await Promise.all(pendingDumps);
       for (const port of forwards) await adb('reverse', '--remove', 'tcp:' + port).catch(() => {});
     },
   };

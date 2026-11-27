@@ -46,6 +46,13 @@ The renderer passes the fixture's explicit debug activity a loopback Metro addre
 
 The harness opens the client through `plugin/bin/prevue rn`, reads real PNG headers and accessibility hierarchies, and checks the same preview and generation in the response. It measures five warm foreground `render` commands. `elapsedMs` includes CLI startup, device capture, tree extraction and IPC. `captureMs` comes from the renderer. It checks coordinate selection, tap, typing, scrolling and reset by comparing accessible text or element bounds.
 
+To reproduce the Android latency check, keep the emulator booted with the same installed Debug build, project and Metro cache for both revisions. Select each revision's CLI with `PREVUE_BIN` and use separate output directories. Each timed frame must contain a new PNG and tree with the shipment text and dispatch button. The report includes each sample and the nearest-rank CLI P50/P95. The command fails if the CLI P50 exceeds the budget.
+
+```sh
+node tests/react-native/device.mjs android "$ANDROID_SERIAL" \
+  --warm-runs 15 --max-warm-p50-ms 2000 --output .cache/android-warm/after
+```
+
 `--refresh` creates its own temporary preview under the fixture, edits the TSX, introduces a syntax error, verifies the stale image generation and saves a working revision. It removes the temporary preview and shuts down the platform session on completion. Native source or dependency changes require rebuilding and reinstalling the debug host.
 
 The default evidence directory is `.cache/react-native-device/<platform>`. Pass `--output path` to keep screenshots, UI trees and JSON timing reports elsewhere. Each harness invocation uses the selected project/platform session and stops it at the end. `PREVUE_BIN` can select the full path to another checkout's `plugin/bin/prevue`.
