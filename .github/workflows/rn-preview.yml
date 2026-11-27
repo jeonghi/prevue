@@ -25,10 +25,13 @@ jobs:
       - run: npm ci --prefix fixtures/react-native-web
       - name: Install the Expo test project when present
         run: if test -f fixtures/react-native-expo/package-lock.json; then npm ci --prefix fixtures/react-native-expo; fi
-      - run: npx playwright install --with-deps chromium
+      - id: chromium
+        run: npx playwright install --with-deps chromium
         working-directory: plugin/rn-runtime
       - run: npm run typecheck --prefix plugin/rn-runtime
       - run: npm run typecheck --prefix fixtures/react-native-web
       - run: npm test --prefix plugin/rn-runtime
-      - run: node --test tests/react-native/viewer-contract.test.mjs tests/react-native/*.e2e.mjs
+      - name: Run CLI and viewer end-to-end tests
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: node --test tests/react-native/viewer-contract.test.mjs tests/react-native/*.e2e.mjs
       - run: sh tools/gen-agents.sh --check
