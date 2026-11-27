@@ -50,7 +50,7 @@ export function createWebRenderer(makeBundler: (context: ProjectContext) => Prom
 
   return {
     capabilities: () => ({
-      screenshot: true, interactiveInput: true, uiTree: true, sourceLocation: false,
+      screenshot: true, interactiveInput: true, uiTree: true, sourceLocation: makeBundler === startBundler,
       viewportResize: false, themeOverride: false, nativeInsets: false, animationFrameControl: false, stateReset: true,
     }),
     async prepare(context) {
