@@ -1,5 +1,21 @@
+function accessibilityRole(element) {
+  const role = element.getAttribute('role');
+  if (role) return role;
+  if (element.matches('button,input[type=button],input[type=submit]')) return 'button';
+  if (element.matches('textarea,input:not([type]),input[type=text],input[type=email],input[type=tel],input[type=url]')) return 'textbox';
+  if (element.matches('input[type=checkbox]')) return 'checkbox';
+  if (element.matches('a[href]')) return 'link';
+  if (element.matches('img[alt]:not([alt=""])')) return 'img';
+}
+
+function accessibilityLabel(element) {
+  const labels = (element.getAttribute('aria-labelledby') ?? '').trim().split(/\s+/)
+    .map(id => id && document.getElementById(id)?.textContent?.trim()).filter(Boolean);
+  return labels.join(' ') || element.getAttribute('aria-label') || element.getAttribute('alt') || undefined;
+}
+
 // Bounds and pointer coordinates in the wire protocol are physical image pixels.
-export function inspectDocument() {
+export function inspectDocument(sourceAttribute) {
   const ratio = window.devicePixelRatio;
   function visit(element, id) {
     if (!(element instanceof Element) || ['SCRIPT', 'STYLE', 'LINK'].includes(element.tagName)) return [];
@@ -16,9 +32,9 @@ export function inspectDocument() {
       bounds: { x: rect.x * ratio, y: rect.y * ratio, width: rect.width * ratio, height: rect.height * ratio },
       text: text || undefined,
       testId: element.getAttribute('data-testid') || undefined,
-      accessibilityRole: element.getAttribute('role') || undefined,
-      accessibilityLabel: element.getAttribute('aria-label') || undefined,
-      source: null, children,
+      accessibilityRole: accessibilityRole(element),
+      accessibilityLabel: accessibilityLabel(element),
+      source: null, sourceToken: sourceAttribute ? element.getAttribute(sourceAttribute) || undefined : undefined, children,
     }];
   }
   return {

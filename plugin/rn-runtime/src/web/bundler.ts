@@ -11,11 +11,13 @@ import { createServer, normalizePath, searchForWorkspaceRoot, transformWithEsbui
 import tsconfigPaths from 'vite-tsconfig-paths';
 import type { ProjectContext, RenderRequest } from '../protocol.ts';
 import { metroAssets } from './assets.ts';
+import { createHostInspector, type SourceIndex } from './inspector.ts';
 import { WebError, type WebRequest } from './bridge.ts';
 import { SavedFiles } from './saved-files.ts';
 
 export interface WebBundler {
   entry: string;
+  inspector?: SourceIndex;
   revision(): number;
   reloadOnChange?: boolean;
   diagnostics?(id: string, report: (revision: number, message: string) => void): () => void;
@@ -51,6 +53,7 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
   const revisionId = id('revision.jsx');
   const treeId = id('tree.js');
   const sdkId = id('sdk.js');
+  const inspector = createHostInspector();
   const saves = new SavedFiles();
   const sharedDirectories = new Set<string>();
   let revision = 0;
@@ -131,10 +134,15 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
         vite?.watcher.add(directory);
       }
       let map;
-      if (code.includes('require') && /\brequire\s*\(/.test(code)) {
+      const plugins = [];
+      if (/\brequire\s*\(/.test(code)) plugins.push(metroAssets);
+      if (inside(root, file) && /\.(?:tsx|jsx|js)$/.test(file) && code.includes('react-native') && code.includes('<')) {
+        plugins.push(inspector.authorLocations(normalizePath(path.relative(root, file))));
+      }
+      if (plugins.length) {
         const result = await transformAsync(code, {
           filename: file, babelrc: false, configFile: false, sourceMaps: true, retainLines: true,
-          parserOpts: { plugins: ['jsx', 'typescript'] }, plugins: [metroAssets],
+          parserOpts: { plugins: ['jsx', 'typescript'] }, plugins,
         });
         if (result?.code) { code = result.code; map = result.map; }
       }
@@ -165,6 +173,7 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
       if (this.environment.name !== 'client' || !inside(workspace, file) || inside(artifacts, file) ||
           file.split('/').includes('node_modules') || !trackedSource.test(file)) return;
       if (!await saves.changed(file)) return [];
+      inspector.invalidate(normalizePath(path.relative(root, file)));
       revision++;
       const graph = this.environment.moduleGraph;
       const marker = graph.getModuleById(revisionId);
@@ -192,7 +201,7 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
       logLevel: 'error', clearScreen: false,
       plugins: [
         runtime, tsconfigPaths({ loose: true }),
-        react({ exclude: [previewExtension, clientId, normalizePath(cacheDir) + '/**'] }),
+        react({ exclude: [previewExtension, clientId, normalizePath(cacheDir) + '/**'] }), inspector.dataSets,
       ],
       resolve: { alias: [{ find: /^react-native$/, replacement: 'react-native-web' }], extensions, dedupe: ['react', 'react-dom', 'react-native-web'] },
       define: { __DEV__: true },
@@ -217,7 +226,7 @@ export async function startBundler(context: ProjectContext): Promise<WebBundler>
       return stamp ? url + '?t=' + stamp : url;
     };
     return {
-      entry: 'http://' + authority + base + 'index.html', revision: () => revision, close,
+      entry: 'http://' + authority + base + 'index.html', inspector: inspector.index, revision: () => revision, close,
       diagnostics(id, report) {
         diagnostics.set(id, report);
         return () => { diagnostics.delete(id); };
