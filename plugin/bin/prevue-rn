@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+runtime="$(cd "$(dirname "$0")/../rn-runtime" && pwd)"
+if ! command -v node >/dev/null 2>&1 || [ ! -f "$runtime/node_modules/tsx/dist/loader.mjs" ]; then
+  echo '{"ok":false,"error":{"code":"DEPENDENCY_MISSING","message":"Install Node 22.12+ and run npm ci in plugin/rn-runtime first"},"exitCode":3}'
+  exit 3
+fi
+exec node --import "$runtime/node_modules/tsx/dist/loader.mjs" "$runtime/src/cli.ts" "$@"
