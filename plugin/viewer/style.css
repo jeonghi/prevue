@@ -984,3 +984,7 @@ kbd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; 
 .rn-node-info > div { display: grid; grid-template-columns: auto 1fr; gap: var(--space-8); }
 .rn-node-info dt { color: var(--on-surface-variant); }
 .rn-node-info dd { margin: 0; overflow-wrap: anywhere; }
+
+.rn-platform {
+  border: 0; padding: 0; color: inherit; background: var(--surface); font: inherit; cursor: pointer;
+}

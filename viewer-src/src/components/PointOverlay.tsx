@@ -200,7 +200,7 @@ export function PointCard({ card, actions = NO_ACTIONS }: { card: PointCardData;
         <div className="pc-detail-in pc-swap" key={`detail-${swap}`}>
           <SizeRow box={box} />
           {node.nodeId && <dl className="rn-node-info">{(['text', 'accessibilityRole', 'accessibilityLabel', 'testId'] as const)
-            .filter(key => node[key]).map(key => <div key={key}><dt>{phrase('rn.' + key)}</dt><dd>{node[key]}</dd></div>)}</dl>}
+            .filter(key => node[key]).map(key => <div key={key}><dt>{phrase(({text:'rn.text', accessibilityRole:'rn.accessibilityRole', accessibilityLabel:'rn.accessibilityLabel', testId:'rn.testId'} as const)[key])}</dt><dd>{node[key]}</dd></div>)}</dl>}
           {modifiers && modifiers.length > 0 && <ModifierRows modifiers={modifiers} />}
         </div>
       </div>
