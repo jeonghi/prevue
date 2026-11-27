@@ -29,17 +29,18 @@ For a multi-display iOS Simulator, select the display containing the React Nativ
 ## Opening the preview
 
 ```sh
+prevue rn doctor --platform ios --device "$SIMULATOR_UDID"
 prevue rn show Shipment.preview.tsx --platform ios --device "$SIMULATOR_UDID"
 prevue rn show Shipment.preview.tsx --platform android --device "$EMULATOR_SERIAL"
-prevue rn focus 0 --on --platform ios --device "$SIMULATOR_UDID"
-prevue rn render --platform ios --device "$SIMULATOR_UDID"
-prevue rn stop --platform ios --device "$SIMULATOR_UDID"
+prevue rn focus 0 --on --platform ios
+prevue rn render --platform ios
+prevue rn stop --platform ios
 ```
 
-Use `xcrun simctl list devices booted` or `adb devices` to obtain the identifier. The renderer requires an explicit device and configured application identifier. It launches only that application's debug process. A process-owned loopback socket leases each device across checkouts. An occupied lease port yields `NATIVE_DEVICE_BUSY`. The operating system releases the lease when the daemon exits.
+Use `xcrun simctl list devices booted` or `adb devices` to obtain the identifier. Doctor reports the local package configuration, device tools and installed host readiness. On iOS it checks the installed bundle identifier. On Android it also checks the package's debuggable flag. Show verifies the debug bridge through a live React commit. It requires an explicit device and launches the configured application. A process-owned loopback socket leases each device across checkouts. An occupied lease port yields `NATIVE_DEVICE_BUSY`. The operating system releases the lease when the daemon exits.
 
 The daemon writes `.prevue/entry.ios.js` or `.prevue/entry.android.js` with Metro-static module references, the global provider, a session token and the bundle revision. It reads Metro's file-change events before advancing this revision. The device acknowledges the command ID, session, preview ID and generation after a React commit and native view measurement. The daemon checks the bundle revision before and after capturing the native framebuffer and accessibility tree. A command timeout or failing bundle produces an error and preserves the last successful capture in the board. A connected host uses React Native Fast Refresh. If the active host has an older revision after refresh, it reloads its Metro bundle.
 
-iOS capture uses `simctl io`. Install `idb` and `idb_companion` for accessibility inspection, taps, swipes and text input. Accessibility frames and tap positions convert between screen points and raw screenshot pixels using the acknowledged screen dimensions. Android uses `adb exec-out screencap`, `uiautomator dump` and `input` on the selected Emulator. Android bounds and touch arguments are physical pixels. ADB text input supports printable ASCII. Native accessibility trees return `source: null` for unverified TSX source locations.
+iOS capture uses `simctl io`. Install `idb` and `idb_companion` for accessibility inspection, taps, swipes and text input. Text input appends through the focused, non-secure field using idb's `ui set-value` action, including on non-Latin keyboard layouts. Accessibility frames and tap positions convert between screen points and raw screenshot pixels using the acknowledged screen dimensions. Android uses `adb exec-out screencap`, `uiautomator dump` and `input` on the selected Emulator. Android bounds and touch arguments are physical pixels. ADB text input supports printable ASCII. Native accessibility trees return `source: null` for unverified TSX source locations.
 
 Interactive focus holds the physical display until the session closes. Reset remounts the selected preview and providers with its initial fixture. `NativePreviewSession.setArgs(props)` overrides the preview's initial props until the next reset. The captured image uses the device's physical viewport, native insets and system appearance. Changes to native sources, Pods, Gradle inputs or package manifests yield `NATIVE_BUILD_REQUIRED`. Rebuild and reinstall the debug host, then restart the preview daemon. Project credentials and application state should be provided explicitly by debug-only providers and fixtures.

@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { promisify } from 'node:util';
 import { startBridge } from '../src/native/bridge.ts';
-import { androidTree, iosTree, parseConfig, pngSize } from '../src/native/device.ts';
+import { nativeDoctor } from '../src/native/doctor.ts';
+import { parse } from '../src/commands.ts';
+import { androidTree, iosInputValue, iosTree, parseConfig, pngSize } from '../src/native/device.ts';
 import { acquireDevice } from '../src/native/lease.ts';
 import { createNativeRenderer, nativeBuildInput } from '../src/native/index.ts';
 import { writeEntry } from '../src/native/metro.ts';
@@ -13,6 +17,11 @@ test('only one owner can select a device until the process releases its lease', 
   const release = await acquireDevice('ios', 'EE010000-ABCD-0000-0000-000000000001');
   try {
     await assert.rejects(acquireDevice('ios', 'ee010000-abcd-0000-0000-000000000001'), { code: 'NATIVE_DEVICE_BUSY' });
+    const module = new URL('../src/native/lease.ts', import.meta.url).href;
+    const script = `import {acquireDevice} from ${JSON.stringify(module)}; try { await (await acquireDevice('ios', 'ee010000-abcd-0000-0000-000000000001'))(); } catch (error) { console.log(error.code); }`;
+    const other = await promisify(execFile)(process.execPath, ['--import', import.meta.resolve('tsx'), '--input-type=module', '-e', script],
+      { cwd: os.tmpdir(), env: { ...process.env, PREVUE_HOME: path.join(os.tmpdir(), 'different-prevue-home') } });
+    assert.equal(other.stdout.trim(), 'NATIVE_DEVICE_BUSY');
   } finally { await release(); }
   await (await acquireDevice('ios', 'EE010000-ABCD-0000-0000-000000000001'))();
 });
@@ -44,6 +53,9 @@ test('native errors and absent acknowledgments cannot become ready screenshots',
   const command = await (await fetch(bridge.endpoint + '/next?revision=test', { headers })).json();
   await fetch(bridge.endpoint + '/ack', { headers, method: 'POST', body: JSON.stringify({ ...command, platform: 'ios', error: 'Fixture failed' }) });
   await failed;
+  const superseded = assert.rejects(bridge.request(request), { code: 'STALE_RENDER' });
+  bridge.invalidate();
+  await superseded;
   await assert.rejects(bridge.request(request, 10), { code: 'NATIVE_ACK_TIMEOUT' });
 });
 
@@ -91,4 +103,29 @@ test('native setup requires a device, explicit Debug host configuration and plat
   assert.equal(nativeBuildInput('ios/App/AppDelegate.swift', 'android'), false);
   assert.equal(nativeBuildInput('package-lock.json', 'android'), true);
   assert.equal(nativeBuildInput('ios/Pods/Sample/Bridge.m', 'ios'), false);
+});
+
+test('iOS appends Unicode through the focused accessibility field across keyboard layouts', () => {
+  const row = { AXUniqueId: 'note', AXLabel: '화물 메모', AXValue: '화물 메모', type: 'TextField',
+    traits: ['TextEntry', 'IsEditing'], frame: { x: 10, y: 20, width: 160, height: 40 } };
+  const first = iosInputValue([row], '부산');
+  assert.deepEqual(first, { key: 'note', value: '부산', x: 90, y: 40 });
+  assert.equal(iosInputValue([{ ...row, AXValue: '부산' }], ' Dock B', first).value, '부산 Dock B');
+  assert.equal(iosInputValue([row], '!', { key: 'note', value: '화물 메모' }).value, '화물 메모!');
+  assert.throws(() => iosInputValue([{ ...row, type: 'SecureTextField' }], 'secret'), { code: 'UNSUPPORTED_INPUT' });
+  assert.throws(() => iosInputValue([row, row], 'ambiguous'), { code: 'UNSUPPORTED_INPUT' });
+});
+
+test('doctor distinguishes the installed native adapter from host readiness without creating generated entries', async t => {
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'prevue-native-doctor-')));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(path.join(root, 'package.json'), JSON.stringify({ dependencies: { 'react-native': '*' } }));
+  const parsed = parse(['doctor', '--platform', 'ios', '--device', 'specific-id']);
+  assert.equal('device' in parsed && parsed.device, 'specific-id');
+  const result = await nativeDoctor(root, 'ios');
+  assert.equal(result.installedHost, false);
+  assert.ok(result.missing.includes('prevue.native.json with ios.appId'));
+  assert.ok(result.missing.includes('explicit --device Simulator UDID'));
+  assert.ok(result.missing.includes('@prevue/native-host'));
+  await assert.rejects(access(path.join(root, '.prevue')), { code: 'ENOENT' });
 });
