@@ -2,6 +2,8 @@
   <img src="assets/icon.png" width="40" height="40" alt="" align="absmiddle">&nbsp;Prevue
 </h1>
 
+이 커뮤니티 포크는 React Native 프리뷰를 추가합니다. [실행 방법](docs/react-native-cli.md)과 [플랫폼별 검증 결과](docs/react-native-compatibility.md)를 확인할 수 있습니다.
+
 <p align="center"><b>Android Studio 없이 보는 Compose Preview.</b></p>
 
 <p align="center">저장하면 1초, 브라우저에서 다시 그려집니다.<br>에이전트도 같은 화면을 봅니다.</p>
@@ -122,7 +124,7 @@ Prevue는 워크트리마다 가벼운 데몬을 하나씩 띄웁니다.
 
 ## 시작하기
 
-### 요구 사항
+### Compose 요구 사항
 
 - **macOS**와 Command Line Tools(`python3`) — 없으면 에이전트가 설치 창을 열어 줍니다.
 - **Java** — Android Studio Ladybug(2024.2) 이상이 있으면 따로 준비할 것이 없습니다. 프로젝트가 JDK 17이어도 괜찮습니다.
@@ -134,15 +136,19 @@ Prevue는 워크트리마다 가벼운 데몬을 하나씩 띄웁니다.
 
 ### 설치
 
+설치하려는 버전의 포크를 체크아웃한 뒤 저장소 루트에서 실행하세요. 두 마켓플레이스 모두 그 체크아웃의 플러그인을 읽습니다.
+
 ```sh
 # Claude Code
-claude plugin marketplace add https://github.com/kakao/prevue.git
+claude plugin marketplace add "$PWD"
 claude plugin install prevue@prevue
 
 # Codex
-codex plugin marketplace add https://github.com/kakao/prevue.git
+codex plugin marketplace add "$PWD"
 codex plugin add prevue@prevue
 ```
+
+React Native 프리뷰에는 Node 22.12 이상이 필요합니다. 웹 프리뷰를 쓰려면 설치된 플러그인의 런타임과 Chromium을 준비하세요. [React Native 설치 안내](docs/react-native-cli.md#installed-plugin)
 
 설치한 뒤에는 에이전트에게 파일 이름만 말하면 됩니다. 스킬을 직접 부르면 더 확실합니다(Claude Code는 `/prevue`, Codex는 `$prevue:prevue`).
 

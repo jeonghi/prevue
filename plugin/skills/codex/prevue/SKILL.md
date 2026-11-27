@@ -1,6 +1,6 @@
 ---
 name: prevue
-description: Renders Jetpack Compose @Preview in the browser, lets you edit it and check the result yourself, and reads what a person points at on screen as a file and line. Use it when changing Compose UI or matching it to a mockup or screenshot, when asked "how does it look", and when the user points at something on screen with words like "this" or "here". Also use it when asked whether the preview is ready ("is the preview ready?") or told to prepare the preview (read the build settings).
+description: Renders Jetpack Compose @Preview and React Native preview files in the browser, lets you edit it and check the result yourself, and reads what a person points at on screen as a file and line. Use it when changing Compose UI or matching it to a mockup or screenshot, when asked "how does it look", and when the user points at something on screen with words like "this" or "here". Also use it when asked whether the preview is ready ("is the preview ready?") or told to prepare the preview (read the build settings).
 ---
 <!-- 생성물이다. skills-src/prevue/SKILL.md 를 고치고 tools/gen-agents.sh 로 만든다 -->
 
@@ -17,6 +17,19 @@ It answers right away without the daemon, so when you don't know something, run 
 
 **Don't pass a port.** `prevue` finds the repository and daemon from the file path in its arguments. If a command that takes no file (`status` · `board` · `touch`)
 refuses because it can't tell which repository you mean, call a command that takes a file (`prevue show <file>`) once, or run it from inside that repository.
+
+## React Native preview files
+
+Use Node 22.12 or later. On first RN use in a plugin installation, set up its pinned runtime with `(cd "$PREVUE/rn-runtime" && npm ci)`. For browser previews, install its Chromium with `"$PREVUE/rn-runtime/node_modules/.bin/playwright" install chromium`. Each new plugin cache can have its own runtime installation.
+
+Run `"$PREVUE/bin/prevue" rn --help` from the RN package. The app supplies its React, React DOM and React Native Web dependencies for web rendering. The bundled development SDK is in `$PREVUE/rn-runtime/packages/react-native`. For Metro and project type checking, add a project-owned copy as a local dev dependency when setting up the app. The commands later in this document cover Compose.
+
+1. Run `prevue rn doctor` and `prevue rn previews`. A trusted local project declares previews with `@prevue/react-native` and a fixture or provider. Dependency setup is explicit.
+2. Run `prevue rn show <file> --platform web --lang <code>`. Read the returned PNGs and tree files. Give the developer the private local viewer URL. The board displays the same captures as the CLI.
+3. To act on a marked element, read `prevue rn selection`. Use a verified source path and its line when available. A null source means the location is unknown. If a Figma frame was supplied, compare its spacing and states with the captured component and its measured bounds.
+4. Record the current generation, edit the actual component and run `prevue rn wait <saved-file> --after <generation>`. Confirm a ready result, matching imageGeneration, and inspect the new PNG. A stale result keeps the older image for diagnosis. Read the error, fix the source and repeat the wait for that save.
+5. For an input or navigation change run `prevue rn focus <index> --on`. Use physical PNG coordinates from the current tree for `touch`, then `type` or `scroll`. Inspect the returned image and text. Use `reset` for the initial state, or `focus <index> --off` to return to the board.
+6. Request native output with an explicitly chosen simulator UDID or emulator serial and a project-configured Debug Host. Identify the platform on every result. Use the compatibility table in the checkout for platform-specific capabilities.
 
 ## Talking to the user
 
