@@ -54,10 +54,13 @@ export async function startMetro(root: string, cache: string, changed: (file: st
     throw new PreviewFailure('METRO_UNAVAILABLE', 'Install Metro and configure metro.config.js in the selected debug host.');
   }
   let connection: MetroMiddleware | undefined;
-  const server = createServer((req, res) => {
+  const trusted = (req: IncomingMessage) => {
     const address = server.address();
-    if (!address || typeof address === 'string' || !['127.0.0.1:' + address.port, 'localhost:' + address.port].includes(req.headers.host ?? '') ||
-        (req.headers.origin && req.headers.origin !== 'http://' + req.headers.host)) { res.writeHead(403).end(); return; }
+    return !!address && typeof address !== 'string' && ['127.0.0.1:' + address.port, 'localhost:' + address.port].includes(req.headers.host ?? '') &&
+      (!req.headers.origin || req.headers.origin === 'http://' + req.headers.host);
+  };
+  const server = createServer((req, res) => {
+    if (!trusted(req)) { res.writeHead(403).end(); return; }
     if (req.url === '/status') { res.end('packager-status:running'); return; }
     if (!connection) { res.writeHead(503).end(); return; }
     connection.middleware(req, res, error => res.writeHead(error ? 500 : 404).end(error?.message));
@@ -74,6 +77,7 @@ export async function startMetro(root: string, cache: string, changed: (file: st
     config.fileMapCacheDirectory = cache;
     connection = await metro.createConnectMiddleware(config, { waitForBundler: true });
     connection.attachHmrServer(server);
+    server.prependListener('upgrade', (req, socket) => { if (!trusted(req)) socket.destroy(); });
     const graph = await connection.metroServer.getBundler().getBundler().getDependencyGraph();
     const watcher = graph.getWatcher();
     const onChange = (event: MetroChange) => {

@@ -2,7 +2,7 @@ import { PreviewFailure } from './errors.ts';
 import type { Platform } from './protocol.ts';
 
 const usage: Record<string,string> = {
-  doctor:'doctor [path]', show:'show <file> [--platform web|ios|android] [--device id] [--lang ko]',
+  doctor:'doctor [path] [--platform web|ios|android] [--device id]', show:'show <file> [--platform web|ios|android] [--device id] [--lang ko]',
   previews:'previews [file]', board:'board', focus:'focus <index> [--on|--off]', render:'render',
   wait:'wait [saved-file] [--after generation] [--timeout seconds]', status:'status',
   touch:'touch <x> <y>', scroll:'scroll [screens] [--direction up|down|left|right]', type:'type <text>',
@@ -32,7 +32,7 @@ export function parse(argv: string[]) {
     if (t === '--project') project=tokens[++i] || (()=>{throw bad();})();
     else if (t === '--platform') {
       const v=tokens[++i]; if (v!=='web' && v!=='ios' && v!=='android') throw bad(); platform=v;
-    } else if (t === '--device' && cmd==='show') {device=tokens[++i]; if (!device) throw bad();}
+    } else if (t === '--device' && (cmd==='show' || cmd==='doctor')) {device=tokens[++i]; if (!device) throw bad();}
     else if (t === '--lang' && (cmd==='open' || cmd==='show')) {lang=tokens[++i]; if (!lang) throw bad();}
     else if ((t==='--on' || t==='--off') && cmd==='focus') args.interactive=t==='--on';
     else if ((t==='--after' || t==='--timeout') && cmd==='wait') {

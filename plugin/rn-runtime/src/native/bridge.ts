@@ -75,6 +75,10 @@ export async function startBridge(platform: 'ios' | 'android') {
   endpoint = 'http://127.0.0.1:' + address.port;
   return {
     endpoint, token, port: address.port,
+    invalidate() {
+      pending?.reject(new PreviewFailure('STALE_RENDER', 'A newer Metro revision superseded this native command.'));
+      pending = undefined;
+    },
     request(input: Omit<NativeCommand, 'id'>, timeout = 45_000): Promise<Screen> {
       if (pending) return Promise.reject(new PreviewFailure('NATIVE_DEVICE_BUSY', 'A native command is already in flight.'));
       const command = { ...input, id: randomUUID() };
