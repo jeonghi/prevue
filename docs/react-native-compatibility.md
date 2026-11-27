@@ -11,7 +11,7 @@ Verified on Apple Silicon, macOS 27.2.1. The screenshots under `assets/react-nat
 | Android emulator | Actual device PNG and UI Automator hierarchy, 1080 × 2400 | Installed Debug Host on API 36, explicit ADB serial |
 | Bare RN | RN 0.82.1 Debug Host and web-compatible component fixtures | Third-party native modules require the project-specific host build |
 | Monorepo | npm and pnpm workspace discovery tests; linked workspace component rendered by Chromium | Select the intended app when multiple packages qualify. Sources outside the selected project have no Inspector file link |
-| Compose | 761 JVM unit tests, 107 integration tests, actual AdaptivePearlPreview PNG, existing CLI and viewer tests | Existing Kotlin runtime and installed viewer assets |
+| Compose | 761 JVM unit tests, 107 integration tests, actual AdaptivePearlPreview PNG, CLI tests, 19 quick-open checks, 37 workspace checks and 19 resize-content checks in Chrome | Existing Kotlin runtime and installed viewer assets |
 
 Device screenshots use the actual device dimensions and appearance. Expo, Storybook and embedded app verification are described in their respective adapter branches. No public npm package is required. Package manifests and lockfiles belong to the fork's development packages and fixtures.
 

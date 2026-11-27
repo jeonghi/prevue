@@ -11,7 +11,7 @@
 | M3 기기 | [Native #6](https://github.com/jeonghi/prevue/pull/6) → #2 | Metro, 명시적 기기 임대, iOS·Android 캡처와 입력, 변경·복구·호스트 재빌드 |
 | 통합 | [Integration #7](https://github.com/jeonghi/prevue/pull/7) → `stack/rn-runtimes` | #2–#6 병합 기준. 세 worktree E2E, 에이전트 스킬, CI, 실제 캡처와 측정 |
 | 프로젝트 호환 | [Project adapters #8](https://github.com/jeonghi/prevue/pull/8) → #7 | Expo Metro SDK 54, Storybook CSF의 meta·args·render, 명시적 RN 모듈 mock |
-| 기존 앱 삽입 | `feat/rn-brownfield` → 프로젝트 어댑터 | 네이티브 첫 화면, Debug의 RN 자식 화면, 양 플랫폼의 Release 경계 |
+| 기존 앱 삽입 | [Brownfield #9](https://github.com/jeonghi/prevue/pull/9) → #8 | 네이티브 첫 화면, Debug의 RN 자식 화면, 양 플랫폼의 Release 경계 |
 
 ## 구현 위치
 
