@@ -1,7 +1,7 @@
 {
   "name": "prevue",
   "version": "0.24.1",
-  "description": "Opens Jetpack Compose @Previews in the browser without Android Studio, and lets your agent read the spot you point at on screen as a file and line.",
+  "description": "Preview Jetpack Compose and React Native UI, interact with the rendered screen, and locate its source.",
   "author": {
     "name": "Origogi"
   },
@@ -12,6 +12,7 @@
     "jetpack-compose",
     "preview",
     "hot-reload",
-    "layoutlib"
+    "layoutlib",
+    "react-native"
   ]
 }
