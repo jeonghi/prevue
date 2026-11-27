@@ -53,6 +53,15 @@ node tests/react-native/device.mjs android "$ANDROID_SERIAL" \
   --warm-runs 15 --max-warm-p50-ms 2000 --output .cache/android-warm/after
 ```
 
+For a byte-for-byte device reference, open a shipment preview, focus it and let the screen settle. The checker captures the framebuffer again when the renderer writes the next PNG. It also compares the entire tree with an independent UI Automator dump to a regular file. Run it again after a tap, text input, reset or scroll to check that state.
+
+```sh
+plugin/bin/prevue rn show fixtures/react-native-bare/Shipment.preview.tsx --platform android --device "$ANDROID_SERIAL"
+plugin/bin/prevue rn focus 0 --on --project fixtures/react-native-bare --platform android
+plugin/rn-runtime/node_modules/.bin/tsx tests/react-native/android-reference.mts "$ANDROID_SERIAL" fixtures/react-native-bare
+plugin/bin/prevue rn stop --project fixtures/react-native-bare --platform android
+```
+
 `--refresh` creates its own temporary preview under the fixture, edits the TSX, introduces a syntax error, verifies the stale image generation and saves a working revision. It removes the temporary preview and shuts down the platform session on completion. Native source or dependency changes require rebuilding and reinstalling the debug host.
 
 The default evidence directory is `.cache/react-native-device/<platform>`. Pass `--output path` to keep screenshots, UI trees and JSON timing reports elsewhere. Each harness invocation uses the selected project/platform session and stops it at the end. `PREVUE_BIN` can select the full path to another checkout's `plugin/bin/prevue`.
