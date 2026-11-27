@@ -1,5 +1,21 @@
 # Running the RN preview
 
+## Installed plugin
+
+Use Node 22.12 or later. Set `PREVUE` to the installed plugin directory containing `bin/prevue`. Claude Code exposes it as `${CLAUDE_PLUGIN_ROOT}`. In Codex it is three directories above the directory containing the installed `skills/codex/prevue/SKILL.md`.
+
+```sh
+(cd "$PREVUE/rn-runtime" && npm ci)
+"$PREVUE/rn-runtime/node_modules/.bin/playwright" install chromium
+cd /path/to/react-native-app
+"$PREVUE/bin/prevue" rn doctor
+"$PREVUE/bin/prevue" rn show OrderCard.preview.tsx --platform web
+```
+
+The project supplies its React, React DOM and React Native Web packages. The private preview SDK is shipped in `$PREVUE/rn-runtime/packages/react-native`. For Metro and TypeScript, add a project-owned copy of that package as a local development dependency with the app’s package manager. A native Debug Host also uses the bundled `packages/native-host` package.
+
+## Repository demo
+
 From the checkout install the optional runtime and the demo project's own dependencies.
 
 ```sh

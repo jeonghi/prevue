@@ -2,6 +2,11 @@ name: React Native preview
 on:
   pull_request:
     paths:
+      - '.agents/plugins/marketplace.json'
+      - '.claude-plugin/marketplace.json'
+      - 'plugin/.codex-plugin/plugin.json'
+      - 'plugin/.claude-plugin/plugin.json'
+      - 'skills-src/prevue/**'
       - 'plugin/rn-runtime/**'
       - 'plugin/bin/prevue*'
       - 'viewer-src/**'
@@ -21,6 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check both plugin packages
+        run: node --test tests/react-native/plugin-package.test.mjs
       - run: npm ci --prefix plugin/rn-runtime
       - run: npm ci --prefix fixtures/react-native-web
       - name: Install the Expo test project when present
