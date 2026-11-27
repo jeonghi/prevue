@@ -33,7 +33,7 @@ test('RN viewer, saved source, error recovery, interaction and independent workt
   async function edit(file,content,base,code=0) {
     await writeFile(file,content);
     const board=await suite.cli(a,['wait',path.relative(a,file),'--after',String(base),'--timeout','30'],code);
-    assert.ok(board.generation>base,JSON.stringify(board));
+    assert.ok(board.generation > base, `${path.relative(a, file)} did not advance after generation ${base}: ${board.error?.message ?? board.generation}`);
     return board;
   }
   const padded=source.replace('padding: 22','padding: 36');assert.notEqual(source,padded);
