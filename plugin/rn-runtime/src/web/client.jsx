@@ -112,6 +112,23 @@ async function reply(operation) {
   }
 }
 
+function storyDefinition(module, exportName) {
+  const meta = module.default;
+  const story = module[exportName];
+  if (!meta || !story) throw fault('INVALID_STORY', 'CSF needs default meta and a named story');
+  const supportedMeta = ['title', 'id', 'component', 'args', 'render'];
+  const supportedStory = ['name', 'args', 'render'];
+  for (const [annotations, supported] of [[meta, supportedMeta], [story, supportedStory]]) {
+    const key = Object.keys(annotations).find(name => !supported.includes(name));
+    if (key) throw fault('UNSUPPORTED_STORY', 'Unsupported CSF annotation: ' + key);
+  }
+  const args = { ...meta.args, ...story.args };
+  const render = (typeof story === 'function' ? story : story.render) ?? meta.render;
+  if (render?.length > 1) throw fault('UNSUPPORTED_STORY', 'CSF render context is unavailable');
+  if (!render && !meta.component) throw fault('INVALID_STORY', 'CSF needs either a render function or meta.component');
+  return { props: args, render: render ?? (props => React.createElement(meta.component, props)) };
+}
+
 async function apply(request, reset) {
   if (reset || lastError || request.previewId !== current?.request.previewId) mount++;
   lastError = undefined;
@@ -129,7 +146,7 @@ async function apply(request, reset) {
   } catch (error) {
     throw fault('WEB_BUNDLE_FAILED', error.message);
   }
-  const definition = module[request.exportName];
+  const definition = request.format === 'csf' ? storyDefinition(module, request.exportName) : module[request.exportName];
   if (!definition || typeof definition.render !== 'function') {
     throw fault('INVALID_PREVIEW', 'Export ' + request.exportName + ' has no render function.');
   }

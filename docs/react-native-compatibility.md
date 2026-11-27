@@ -11,9 +11,11 @@ Verified on Apple Silicon, macOS 27.2.1. The screenshots under `assets/react-nat
 | Android emulator | Actual device PNG and UI Automator hierarchy, 1080 × 2400 | Installed Debug Host on API 36, explicit ADB serial |
 | Bare RN | RN 0.82.1 Debug Host and web-compatible component fixtures | Third-party native modules require the project-specific host build |
 | Monorepo | npm and pnpm workspace discovery tests; linked workspace component rendered by Chromium | Select the intended app when multiple packages qualify. Sources outside the selected project have no Inspector file link |
+| Expo Web | SDK 54.0.38 real Metro bundle, source edit, new text and PNG | Explicit development entry and static registration, full remount on save |
+| Storybook CSF | Meta component, merged args, custom render, real RN Web PNG | Web subset. Unsupported annotations (including decorators and parameters) return an error |
 | Compose | 761 JVM unit tests, 107 integration tests, actual AdaptivePearlPreview PNG, CLI tests, 19 quick-open checks, 37 workspace checks and 19 resize-content checks in Chrome | Existing Kotlin runtime and installed viewer assets |
 
-Device screenshots use the actual device dimensions and appearance. Expo, Storybook and embedded app verification are described in their respective adapter branches. No public npm package is required. Package manifests and lockfiles belong to the fork's development packages and fixtures.
+Device screenshots use the actual device dimensions and appearance. Expo and Storybook setup is documented in [project adapters](react-native-project-adapters.md). No public npm package is required. Package manifests and lockfiles belong to the fork's development packages and fixtures.
 
 ## Licenses
 

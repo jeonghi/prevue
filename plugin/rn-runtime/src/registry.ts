@@ -203,6 +203,11 @@ function readMetadata(
   return { name, platforms: available, ...(theme && { theme }), ...(viewport && { viewport }) };
 }
 
+function previewId(file: string, exportName: string) {
+  const hash = createHash('sha256').update(file).update('\0').update(exportName).digest('hex').slice(0, 32);
+  return 'rn-' + hash;
+}
+
 function exportedPreviews(source: ts.SourceFile, file: string): PreviewDescriptor[] {
   const functions = new Set<string>();
   const namespaces = new Set<string>();
@@ -236,9 +241,8 @@ function exportedPreviews(source: ts.SourceFile, file: string): PreviewDescripto
     if (!imported && !qualified) return;
     if (!call.arguments[0]) errorAt(source, call, 'definePreview needs a preview definition.');
     const { line, character } = source.getLineAndCharacterOfPosition(declaration.getStart(source));
-    const hash = createHash('sha256').update(file).update('\0').update(exportName).digest('hex').slice(0, 32);
     descriptors.push({
-      id: `rn-${hash}`, framework: 'react-native',
+      id: previewId(file, exportName), framework: 'react-native',
       source: { file, line: line + 1, column: character + 1, exportName },
       ...readMetadata(call.arguments[0], constants, source, exportName),
     });
@@ -261,6 +265,28 @@ function exportedPreviews(source: ts.SourceFile, file: string): PreviewDescripto
   return descriptors;
 }
 
+function storyDescriptors(source: ts.SourceFile, file: string): PreviewDescriptor[] {
+  const names: ts.Identifier[] = [];
+  let hasMeta = false;
+  for (const statement of source.statements) {
+    if (ts.isExportAssignment(statement) && !statement.isExportEquals) hasMeta = true;
+    if (ts.isVariableStatement(statement) && statement.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      for (const decl of statement.declarationList.declarations) if (ts.isIdentifier(decl.name)) names.push(decl.name);
+    } else if (ts.isFunctionDeclaration(statement) && statement.name && statement.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      names.push(statement.name);
+    } else if (ts.isExportDeclaration(statement) && !statement.isTypeOnly && statement.exportClause && ts.isNamedExports(statement.exportClause)) {
+      for (const spec of statement.exportClause.elements) if (!spec.isTypeOnly && ts.isIdentifier(spec.name)) names.push(spec.name);
+    }
+  }
+  if (!hasMeta) errorAt(source,source,'CSF requires a default meta export.');
+  return names.map(node => {
+    const exportName = node.text;
+    const {line,character} = source.getLineAndCharacterOfPosition(node.getStart(source));
+    return {id:previewId(file,exportName), framework:'react-native', format:'csf', name:exportName, platforms:['web'],
+      source:{file,line:line+1,column:character+1,exportName}};
+  });
+}
+
 export async function discover(root: string): Promise<PreviewDescriptor[]> {
   const directory = await realpath(root);
   const files: string[] = [];
@@ -270,7 +296,7 @@ export async function discover(root: string): Promise<PreviewDescriptor[]> {
     for (const entry of entries) {
       const target = path.join(folder, entry.name);
       if (entry.isDirectory() && !ignoredDirectory(entry.name)) await walk(target);
-      if (entry.isFile() && /\.preview\.[jt]sx$/.test(entry.name)) files.push(target);
+      if (entry.isFile() && /\.(?:preview|stories)\.[jt]sx$/.test(entry.name)) files.push(target);
     }
   }
   await walk(directory);
@@ -288,6 +314,7 @@ export async function discover(root: string): Promise<PreviewDescriptor[]> {
       const { line, character } = source.getLineAndCharacterOfPosition(diagnostic.start ?? 0);
       throw new Error(`${file}:${line + 1}:${character + 1}: ${ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')}`);
     }
-    return exportedPreviews(source, relativeFile(directory, file));
+    const relative = relativeFile(directory,file);
+    return /\.stories\.[jt]sx$/.test(file) ? storyDescriptors(source,relative) : exportedPreviews(source,relative);
   });
 }
