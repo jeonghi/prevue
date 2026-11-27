@@ -7,7 +7,7 @@ import { chromium, digest, projects, treeNodes } from './projects.mjs';
 test('a real click on the board locates the TSX that the agent edits and verifies', {timeout:60000},async t=>{
   const suite=await projects(1); t.after(()=>suite.close());
   const [root]=suite.roots, cli=(...args)=>suite.cli(root,args);
-  const shown=await cli('show','OrderCard.preview.tsx');
+  const shown=await cli('show','OrderCard.preview.tsx','--lang','ko');
   const result=shown.cards[0], nodes=await treeNodes(result);
   const button=nodes.find(n=>n.testId==='order-detail');
   assert.ok(button?.source);
@@ -24,6 +24,10 @@ test('a real click on the board locates the TSX that the agent edits and verifie
   const picked=await cli('selection');
   assert.equal(picked.node.testId,'order-detail');
   assert.deepEqual(picked.node.source,button.source);
+  if (process.env.PREVUE_DEMO_DIR) {
+    await page.locator('.pc-float[data-placed] .rn-node-info').waitFor({state:'visible'});
+    await page.screenshot({path:path.join(process.env.PREVUE_DEMO_DIR,'inspector.png')});
+  }
   const sourceFile=path.join(root,picked.node.source.file);
   const source=await readFile(sourceFile,'utf8');
   assert.ok(source.split('\n')[picked.node.source.line-1].slice(picked.node.source.column-1).startsWith('<Pressable'));
