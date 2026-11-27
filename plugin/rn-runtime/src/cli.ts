@@ -59,6 +59,7 @@ async function main() {
   const base=location(root,'web');
   const last=await readFile(base.active,'utf8').catch(()=>'web');
   const platform=parsed.platform ?? (cmd==='show' ? 'web' : last==='ios'||last==='android'?last:'web');
+  if (cmd==='show' && platform!=='web' && !device) throw new PreviewFailure('NATIVE_DEVICE_REQUIRED','Pass --device with an explicit Simulator UDID or Emulator serial.',3);
   const loc=location(root,platform);
   if (cmd==='previews') {
     const all=await discover(root);
@@ -72,7 +73,9 @@ async function main() {
     const adapter=platform==='web' ? expo?'expo':'web' : 'native';
     const missing=platform==='web' ? ['react','react-dom','react-native-web'].filter(name=>{try{req.resolve(name);return false;}catch{return true;}}) : [];
     const adapterPresent=await stat(fileURLToPath(new URL('./'+adapter+'/index.ts',import.meta.url))).then(s=>s.isFile(),()=>false);
-    const out={ok:!missing.length&&adapterPresent,root,platform,adapter,adapterPresent,missing,daemon:await isAlive(await loadInstance(loc.record),loc.key),node:process.version};
+    const native=platform!=='web' && adapterPresent ? await (await import('./native/doctor.ts')).nativeDoctor(root,platform,device) : undefined;
+    if (native) missing.push(...native.missing);
+    const out={ok:!missing.length&&adapterPresent,root,platform,adapter,adapterPresent,missing,...(native && {native}),daemon:await isAlive(await loadInstance(loc.record),loc.key),node:process.version};
     console.log(JSON.stringify(out)); if(!out.ok) process.exitCode=3;return;
   }
   if(cmd==='log') {
