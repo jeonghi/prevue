@@ -14,7 +14,7 @@ Verified on Apple Silicon, macOS 27.2.1. The screenshots under `assets/react-nat
 | Expo Web | SDK 54.0.38 real Metro bundle, source edit, new text and PNG | Explicit development entry and static registration, full remount on save |
 | Storybook CSF | Meta component, merged args, custom render, real RN Web PNG | Web subset. Unsupported annotations (including decorators and parameters) return an error |
 | Native Brownfield | UIKit and Android native landing page, embedded RN Debug preview, ordinary Release RN child | RN 0.82.1 Debug and Release installed and exercised on both OSs. Release ignored the explicit preview input. The shipped Hermes payloads contained zero preview bridge markers |
-| Compose | 761 JVM unit tests, 107 integration tests, actual AdaptivePearlPreview PNG, existing CLI and viewer tests | Existing Kotlin runtime and installed viewer assets |
+| Compose | 761 JVM unit tests, 107 integration tests, actual AdaptivePearlPreview PNG, CLI tests, 19 quick-open checks, 37 workspace checks and 19 resize-content checks in Chrome | Existing Kotlin runtime and installed viewer assets |
 
 Device screenshots use the actual device dimensions and appearance. Expo and Storybook setup is documented in [project adapters](react-native-project-adapters.md). No public npm package is required. Package manifests and lockfiles belong to the fork's development packages and fixtures.
 
