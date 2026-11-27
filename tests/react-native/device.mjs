@@ -7,11 +7,17 @@ import { parseArgs, promisify } from 'node:util';
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: {
   refresh: { type: 'boolean' }, 'build-change': { type: 'boolean' }, output: { type: 'string' },
+  'warm-runs': { type: 'string', default: '5' }, 'max-warm-p50-ms': { type: 'string' },
 } });
 const [platform, device] = positionals;
 assert(positionals.length === 2 && ['ios', 'android'].includes(platform) && device,
-  'Usage: node tests/react-native/device.mjs ios|android <explicit device> [--output directory] [--refresh|--build-change]');
+  'Usage: node tests/react-native/device.mjs ios|android <explicit device> [--output directory] [--refresh|--build-change] [--warm-runs N] [--max-warm-p50-ms N]');
 assert(!(values.refresh && values['build-change']), 'Choose one check per invocation.');
+const warmRuns = Number(values['warm-runs']);
+const budget = values['max-warm-p50-ms'] === undefined ? undefined : Number(values['max-warm-p50-ms']);
+assert(Number.isSafeInteger(warmRuns) && warmRuns > 0, '--warm-runs must be a positive integer');
+if (budget !== undefined) assert(Number.isFinite(budget) && budget > 0 && !values.refresh && !values['build-change'],
+  '--max-warm-p50-ms requires a positive budget and a warm render run');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const fixture = path.join(root, 'fixtures/react-native-bare');
 const bin = process.env.PREVUE_BIN ?? path.join(root, 'plugin/bin/prevue');
@@ -77,9 +83,18 @@ const report = { platform, device, width: board.width, height: board.height,
 async function exercise() {
   const focused = await rn(['focus', '0', '--on']);
   nodes = await frame(focused.result);
-  for (let i = 0; i < 5; i++) {
+  const images = new Set([focused.result.imagePath]);
+  const trees = new Set([focused.result.treePath]);
+  for (let i = 0; i < warmRuns; i++) {
     const captured = await rn(['render']);
-    await frame(captured.result);
+    const current = await frame(captured.result);
+    assert.equal(captured.result.previewId, board.previewId);
+    assert.equal(captured.result.generation, focused.result.generation);
+    assert(hasText(current, '부산 → 서울'));
+    assert(current.some(node => node.testId === 'dispatch-button'));
+    assert(!images.has(captured.result.imagePath) && !trees.has(captured.result.treePath), 'Each render must produce a fresh PNG and hierarchy');
+    images.add(captured.result.imagePath);
+    trees.add(captured.result.treePath);
     report.warm.push({ elapsedMs: captured.elapsedMs, captureMs: captured.result.durationMs });
   }
   const button = findNode(nodes, n => n.testId === 'dispatch-button', 'dispatch-button');
@@ -159,9 +174,16 @@ try {
   if (values.refresh) await exerciseRefresh();
   else if (values['build-change']) await exerciseNativeChange();
   else await exercise();
+  if (report.warm.length) {
+    const times = report.warm.map(sample => sample.elapsedMs).sort((a, b) => a - b);
+    report.warmCliMs = { p50: times[Math.ceil(times.length * 0.50) - 1], p95: times[Math.ceil(times.length * 0.95) - 1] };
+  }
   const name = values.refresh ? 'refresh' : values['build-change'] ? 'build-change' : 'device';
   await writeFile(path.join(output, name + '-report.json'), JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
+  if (budget !== undefined) {
+    assert(report.warmCliMs.p50 <= budget, `Warm render CLI P50 ${report.warmCliMs.p50} ms exceeds ${budget} ms`);
+  }
 } finally {
   await rn(['stop']);
 }

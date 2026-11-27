@@ -21,7 +21,7 @@
 
 한 worktree에서 세 카드가 준비된 직후 RSS 합계는 **801 MiB**, 독립적인 세 worktree에서 같은 보드를 연 뒤에는 **2,330 MiB**였다. 각 데몬과 하위 브라우저·번들러 프로세스의 RSS를 합산한 값으로, 공유 페이지가 중복 집계될 수 있다. Web 웜 `render`는 이 환경에서 P50 1초 및 P95 3초 목표를 충족했다.
 
-## iOS와 Android
+## iOS와 Android 최초 기준선
 
 `fixtures/react-native-bare/Shipment.preview.tsx`를 설치된 RN 0.82.1 Debug Host에서 실행했다. iOS 27.2 iPhone Duo Simulator의 주 화면은 1398 × 2034, Android API 36 ARM64 Emulator는 1080 × 2400이다. 설치·빌드가 끝난 뒤 새 데몬을 열었다. Metro 디스크 캐시는 유지했다. CLI 시간에는 이미지와 접근성 트리 수집이 포함된다.
 
@@ -33,7 +33,20 @@
 | 웜 `render` CLI P50 / P95, 각 5회 | 1,161 / 1,401 | 2,579 / 2,599 |
 | 웜 렌더러 캡처 P50 / P95, 각 5회 | 674 / 725 | 2,156 / 2,185 |
 
-iOS는 웜 P50 2초 목표를 충족했다. Android는 UI Automator 트리를 포함한 캡처 자체가 2초를 넘었다. 실제 디바이스 빌드·설치, 웹의 임의 뷰포트, 물리 단말 성능은 이 기록의 측정 대상 밖이다.
+iOS는 웜 P50 2초 목표를 충족했다. Android의 최초 5회 측정에서 UI Automator 트리를 포함한 렌더러 캡처는 P50 2,156ms였다. 실제 디바이스 빌드·설치, 웹의 임의 뷰포트, 물리 단말 성능은 이 기록의 측정 대상 밖이다.
+
+### Android 웜 렌더 개선
+
+같은 API 36 ARM64 AVD(`PrevueNativeFixture`, `emulator-5564`)를 한 번 부팅한 상태에서 `1878e45`와 `9d70894`를 비교했다. 설치된 Debug APK, Shipment 프리뷰, Metro 디스크 캐시를 그대로 썼다. 각 버전에서 데몬을 시작해 `show`와 `focus`를 마친 뒤 15회씩 두 번 측정했다. 전체 CLI 시간에는 매번 새 CLI 프로세스에서 실제 PNG와 접근성 트리를 담은 응답을 받기까지가 포함된다.
+
+| 웜 렌더, 버전별 30회 | 개선 전 P50 | 개선 후 P50 | 개선 전 P95 | 개선 후 P95 |
+| --- | ---: | ---: | ---: | ---: |
+| 전체 `prevue rn render` CLI | 2,507 | **1,637** | 2,589 | **1,671** |
+| 렌더러 내부 캡처 | 2,147 | 1,267 | 2,189 | 1,306 |
+
+기기 명령을 따로 5회 측정했을 때 PNG 캡처 중앙값은 118ms였다. UI Automator는 전체 XML을 1,109ms에 출력했지만 프로세스 종료까지는 1,948ms가 걸렸다. 변경 후에는 같은 UI Automator가 접근성 연결을 닫고 출력하는 성공 메시지를 받은 뒤 XML을 파싱한다. 기기 임대를 반납할 때 남은 프로세스 종료를 기다린다. 전체 CLI 중앙값은 870ms(34.7%) 줄었다. [UI Automator의 종료 순서](https://android.googlesource.com/platform/frameworks/base/+/2940697c9c7d6edecc9ce1d14d9945d92139bf4e/cmds/uiautomator/cmds/uiautomator/src/com/android/commands/uiautomator/DumpCommand.java)
+
+초기 화면, 탭, 입력, 초기화, 스크롤에서 개선 전후의 접근성 트리 전체가 일치했다. 각 상태에서 화면이 안정된 뒤 독립적으로 읽은 `adb screencap` PNG와 렌더러 PNG도 전체 바이트가 일치했다. 별도로 저장한 전후 초기 화면에서 픽셀 차이는 시스템 상태바의 y=52–79에만 있었다. [개선 전 PNG](../assets/react-native/android-warm/before.png) · [개선 후 PNG](../assets/react-native/android-warm/after.png) · [전체 트리](../assets/react-native/android-warm/tree.json) · [UI Automator 원본 XML](../assets/react-native/android-warm/uiautomator.xml) · [원시 표본과 검증값](../assets/react-native/android-warm/measurements.json)
 
 ## 기존 네이티브 앱에 삽입한 RN 화면
 
@@ -54,13 +67,13 @@ iOS는 웜 P50 2초 목표를 충족했다. Android는 UI Automator 트리를 �
 | Web 탭 → 이미지 | 484, 466, 469, 451, 450, 466, 467, 467, 467, 467 |
 | iOS 웜 CLI | 1161, 1401, 1071, 1168, 1044 |
 | iOS 웜 캡처 | 674, 725, 618, 713, 597 |
-| Android 웜 CLI | 2597, 2599, 2571, 2542, 2579 |
-| Android 웜 캡처 | 2185, 2162, 2156, 2134, 2156 |
+| Android 최초 웜 CLI | 2597, 2599, 2571, 2542, 2579 |
+| Android 최초 웜 캡처 | 2185, 2162, 2156, 2134, 2156 |
 
 Web 측정기는 실제 Git worktree 세 개를 만들어 격리된 상태 디렉터리에서 CLI를 실행한다. 아래 명령을 저장소 루트에서 실행한다. 기기 측정에는 [Debug Host 빌드·설치 절차](../tests/react-native/device.md)가 필요하다.
 
 ```sh
 node tests/react-native/benchmark.mjs 10
 node tests/react-native/device.mjs ios "$IOS_UDID"
-node tests/react-native/device.mjs android "$ANDROID_SERIAL"
+node tests/react-native/device.mjs android "$ANDROID_SERIAL" --warm-runs 15 --max-warm-p50-ms 2000
 ```
